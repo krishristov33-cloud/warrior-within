@@ -13,7 +13,7 @@ A playable side-view platformer shooter prototype (Soldat-inspired), with the wa
 | Right click jet pack | JET button (hold) |
 | G / middle click grenade · R reload · Wheel or +/− zoom · H show/hide controls · Esc pause | G button grenade · R button · +/− zoom · II pause |
 
-Three difficulty levels (Easy / Normal / Hard) are chosen at start and from the pause menu. Easy has infinite ammo and grenades; on Normal / Hard you start with 2 grenades and pick up more (+2) from grenade crates around the level.
+The game opens on a title menu (pick Easy / Normal / Hard, then PLAY); difficulty can also be changed from the pause menu. Recovering the relic plays a victory celebration, then offers PLAY AGAIN or MAIN MENU. Easy has infinite ammo and grenades; on Normal / Hard you start with 2 grenades and pick up more (+2) from grenade crates around the level.
 
 ## Project layout
 - `index.html` — the built game (everything embedded).

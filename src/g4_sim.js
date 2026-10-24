@@ -16,12 +16,12 @@ const ENEMY = {
 const targets = enemiesDef.map(([x,y,type],i)=>({type,x,y,bx:x,by:y,vx:0,vy:0,r:ENEMY[type].r,hp:ENEMY[type].hp,dead:0,ph:i*1.7,hit:0,state:'idle',t:0,cool:1+Math.random(),aggro:0}));
 const SPAWN = {x:checkpoints[0].x, y:checkpoints[0].y};
 const P = {hp:100,inv:0,dead:0,regenT:0,hurtFlash:0,x:SPAWN.x,y:SPAWN.y,vx:0,vy:0,w:44*HERO,h:140*HERO,ground:false,gs:null,face:1,fuel:1,
-  coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,ammo:30,nades:2,throwT:0,thrown:false,throwA:0,reload:0,cool:0,recoil:0,flash:0,flashN:0,
+  coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,intro:0,celebrate:0,ammo:30,nades:2,throwT:0,thrown:false,throwA:0,reload:0,cool:0,recoil:0,flash:0,flashN:0,
   climb:null,score:0,gems:0,treasures:0,secrets:0,cp:SPAWN,time:0,done:false,stepT:0,prevY:0,aimWorld:0};
 checkpoints[0].on=true;
 const K={}, M={x:innerWidth*0.6,y:innerHeight*0.45,wx:0,wy:0,l:false,r:false};
 addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(!K[k]&&(k==='w'||k===' '||k==='arrowup'))P.buf=0.12; if(k==='r'&&!K.r)startReload(); if(k==='g'&&!K.g)startThrow();
-  if(k==='enter'&&P.done) location.reload(); K[k]=true; if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();});
+  K[k]=true; if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();});
 addEventListener('keyup',e=>{K[e.key.toLowerCase()]=false;});
 canvas.addEventListener('mousemove',e=>{M.x=e.clientX;M.y=e.clientY;});
 canvas.addEventListener('mousedown',e=>{if(e.button===1){e.preventDefault();startThrow();} if(e.button===0)M.l=true; if(e.button===2)M.r=true; canvas.focus();});
@@ -232,6 +232,26 @@ function fxSpawn(x,y){
   for(let i=0;i<16;i++){ const ox=rnd(-40,40)*HERO; part({gs:0,x:x+ox,y:y+rnd(0,H*0.5),vx:0,vy:rnd(250,520),life:rnd(0.4,0.8),s0:rnd(14,26),s1:6,w:2.5,px:1,rgb:[0.5,1,1],k:0.9,drag:1.5,line:1}); }
   for(let i=0;i<6;i++){ const s=i%2?1:-1; part({puff:(Math.random()*PUFF_N)|0,x:x+s*rnd(4,20),y:y+6,vx:s*rnd(80,200),vy:rnd(10,40),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.5,0.8),s0:20,s1:60,rgb:DUST,k:0.6,drag:3}); }
 }
+// the long first spawn's strike: thick sky beam, double shockwave, flash, debris dust, shake
+function fxSpawnEpic(x,y){
+  fxSpawn(x,y);
+  part({gs:1,x,y:y-20,rot:Math.PI/2,life:1.2,s0:1300,s1:1500,w:200*HERO,px:0,rgb:[0.3,0.8,1],k:0.85});
+  part({gs:1,x,y:y-20,rot:Math.PI/2,life:0.9,s0:1200,s1:1400,w:70*HERO,px:0,rgb:[0.9,1,1],k:1});
+  part({sp:'star4',x,y:y+60*HERO,rot:0,life:0.5,s0:2.0,s1:0.4,rgb:[0.85,1,1],tint:true,k:1.8});
+  part({sp:'star4',x,y:y+60*HERO,rot:0.78,life:0.35,s0:1.2,s1:0.3,rgb:[0.6,0.95,1],tint:true,k:1.4});
+  part({sp:'orb_big',x,y:y+50*HERO,life:0.45,s0:0.4,s1:1.5,rgb:[0.35,0.85,1],tint:true,k:0.7});
+  for(const [l,s1,sy] of [[0.7,520,0.3],[0.9,340,1],[1.1,760,0.22]]) part({ring:1,x,y:y+(sy<1?4:60*HERO),life:l,s0:40,s1,rgb:[0.45,0.95,1],k:0.9,sy});
+  for(let i=0;i<14;i++){ const s=i%2?1:-1; part({puff:(Math.random()*PUFF_N)|0,x:x+s*rnd(4,40),y:y+rnd(4,16),vx:s*rnd(160,420),vy:rnd(10,80),rot:rnd(0,6),vr:rnd(-1.2,1.2),life:rnd(0.7,1.2),s0:30,s1:rnd(90,140),rgb:DUST,k:0.7,drag:2.8}); }
+  for(let i=0;i<30;i++){ const b=rnd(0.15,2.99), s=rnd(300,900); part({gs:0,x,y:y+20,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.4,0.9),s0:rnd(16,30),s1:5,w:2.5,px:1,rgb:Math.random()<0.3?[1,0.9,0.6]:[0.5,1,1],k:1,grav:900,drag:1,line:1}); }
+  shake=Math.min(shake+18,22);
+}
+// celebration fireworks around the hero after taking the relic
+function fxFirework(x,y){
+  const c=pick([[1,0.85,0.4],[0.5,1,1],[1,0.6,0.3],[0.8,0.6,1]]);
+  part({sp:'star4',x,y,rot:rnd(0,1),life:0.18,s0:0.5,s1:0.15,rgb:c,tint:true,k:1.5});
+  part({ring:1,x,y,life:0.5,s0:20,s1:200,rgb:c,k:0.8});
+  for(let i=0;i<20;i++){ const b=i/20*6.28+rnd(-0.1,0.1), s=rnd(260,420); part({gs:0,x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.6,0.9),s0:rnd(16,26),s1:5,w:2.5,px:1,rgb:c,k:1,grav:380,drag:1.4,line:1}); }
+}
 // checkpoint lit: beacon flare shooting up from the shrine, halo, sparks
 function fxCheckpoint(x,y){
   part({gs:1,x,y:y+40,rot:Math.PI/2,life:0.8,s0:260,s1:420,w:34,px:0,rgb:[0.35,0.9,1],k:0.85});
@@ -277,7 +297,7 @@ function updateEnemies(dt){
     if(t.spawnT>0){ t.spawnT-=dt; t.aggro=0; if(t.spawnT<=0) fxDroneArrive(t.x,t.y); continue; }   // warping in: no AI yet
     const E=ENEMY[t.type], dx=px-t.x, dy=py-t.y, d=Math.hypot(dx,dy);
     if(Math.abs(dx)>2600) continue;
-    const sees = E.sense>0 && P.dead<=0 && !P.done && d<E.sense*DIFF.sense && lineOfSight(t.x,t.y,px,py);
+    const sees = E.sense>0 && P.dead<=0 && !P.done && !(P.intro>0) && d<E.sense*DIFF.sense && lineOfSight(t.x,t.y,px,py);
     t.aggro = sees ? 2.5 : Math.max(0,t.aggro-dt);
     let ax=0, ay=0;
     const hoverX=t.bx+Math.sin(t.ph*0.9)*40, hoverY=t.by+Math.sin(t.ph*1.7)*18;

@@ -42,6 +42,9 @@ const SEAM = 150;
 const TREASURE_AT = {1:'Temple offering', 2:'Lintel hoard', 7:'Hidden ledge relic box', 9:'Scaffold crate', 13:'Lintel hoard'};
 const placements=[]; { let x=0; for(const [c,m,seam] of SEQ){ const [a,b]=CHUNK[c]; if(seam) x-=SEAM; placements.push({c,a,b,m:!!m,off:x,w:b-a,seam:!!seam}); x+=b-a; } }
 const LEVEL_W = placements[placements.length-1].off + placements[placements.length-1].w;
+// out-of-bounds scenery left of x=0 so the camera can centre the hero at the start (drawn only, darkened, behind a wall)
+const DECOR=[]; { let x=0; for(const c of ['A','B']){ const [a,b]=CHUNK[c]; x-=b-a; DECOR.push({c,a,b,m:true,off:x,w:b-a,seam:false}); } }
+const DECOR_W = -DECOR[DECOR.length-1].off;
 const mapX=(pl,rx)=> pl.off + (pl.m ? (pl.b-rx) : (rx-pl.a));
 const mapY=ry=> REF_H-ry;
 const inC=(pl,rx)=> rx>=pl.a && rx<pl.b;
@@ -93,7 +96,7 @@ function hint(x0,x1,text,ymin=-1e9,ymax=1e9){ hints.push({x0,x1,ymin,ymax,text,s
 const P_OFF=i=>placements[i].off;
 // section boundaries & extras
 solid(-600,-400,600,2400);
-solid(LEVEL_W,-400,600,2400);
+solid(LEVEL_W,-400,600,2400); solid(-600,-400,600,2400);
 solid(-600,REF_H-30,LEVEL_W+1200,400);
 checkpoint(120,mapY(768));
 hint(0,500,'A/D run · Shift walk · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot');

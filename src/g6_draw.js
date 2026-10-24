@@ -20,13 +20,16 @@ function draw(dt){
   const now=performance.now()/1000;
   // ---- the painted level (reference plate), chunk by chunk ----
   setBlend(false);
-  for(const pl of placements){ if(pl.off>x1||pl.off+pl.w<x0) continue;
+  for(const pl of DECOR.concat(placements)){ if(pl.off>x1||pl.off+pl.w<x0) continue;
     const ua=pl.a/imgPlate.width, ub=pl.b/imgPlate.width, uv=[ua,0,ub,1];
     if(!pl.seam) quadA(TX.plate,uv,pl.off,0,pl.off+pl.w,REF_H,[1,1,1,1],pl.m);
     else { // cross-fade the first SEAM px
       const f=SEAM/pl.w, us=pl.m? [ub-(ub-ua)*f, 0, ub, 1] : [ua,0,ua+(ub-ua)*f,1], ur=pl.m? [ua,0,ub-(ub-ua)*f,1] : [ua+(ub-ua)*f,0,ub,1];
       quadA(TX.plate,us,pl.off,0,pl.off+SEAM,REF_H,[0,0,1,1],pl.m); quadA(TX.plate,ur,pl.off+SEAM,0,pl.off+pl.w,REF_H,[1,1,1,1],pl.m); }
   }
+  if(x0<0){ R.enableRenderer(R.shapes); R.shapes.setBlendMode(gl.SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // fade the out-of-bounds scenery into the dark
+    const d0=new spine.Color(0.02,0.04,0.07,0.9), d1=new spine.Color(0.02,0.04,0.07,0.35);
+    R.quad(true,-DECOR_W,0,0,0,0,REF_H,-DECOR_W,REF_H,d0,d1,d1,d0); }
   // painted crystals glow
   for(const g of glows){ if(g.x<x0||g.x>x1) continue; const k=Math.max(0,Math.sin(now*1.3+g.ph*3)); if(k>0.9) fx('twinkle',g.x+Math.sin(g.ph)*14,g.y+10,0.35*k,0,[0.7,1,1],(k-0.9)*9); }
   // ---- hanging platforms ----
@@ -92,7 +95,11 @@ function draw(dt){
   for(const g of nades){ setBlend(false); spr(TX.nade,[0,0,1,1],g.x,g.y+9,15,20,g.rot,WHITE,false);
     if(Math.sin((1.6-g.fuse)*(8+(1.6-g.fuse)*14))>0) fx('orb_s',g.x,g.y+9,0.16,0,[1,0.25,0.1],1.2,true); }
   // player
-  sk.color.a = (P.inv>0 && P.dead<=0) ? (Math.floor(performance.now()/70)%2?0.35:1) : 1;
+  sk.color.a = !started ? 0 : P.intro>0 ? clamp((INTRO_HIT-P.intro)/0.45,0,1) : (P.inv>0 && P.dead<=0) ? (Math.floor(performance.now()/70)%2?0.35:1) : 1;
+  if(P.intro>INTRO_HIT){ const k=1-(P.intro-INTRO_HIT)/(INTRO_T-INTRO_HIT);   // rune circle + thin gathering beam before the strike
+    gring(P.x,P.y+4,(120+140*k)*HERO*1.6,[0.4,0.95,1],0.35+0.5*k,0.28); gring(P.x,P.y+4,(60+90*k)*HERO*1.6,[0.8,1,1],0.25+0.4*k*Math.abs(Math.sin(now*9)),0.28);
+    gshape(1,P.x,P.y,1100,(8+40*k*k)*HERO,Math.PI/2,[0.35,0.85,1],0.35+0.55*k,0); gshape(1,P.x,P.y,1000,(3+12*k*k)*HERO,Math.PI/2,[0.9,1,1],0.3+0.6*k,0);
+    fx('orb_m',P.x,P.y+60*HERO,0.3+0.8*k,0,[0.35,0.85,1],0.4+0.7*k,true); fx('star4',P.x,P.y+60*HERO,0.15+0.35*k,now*2,[0.8,1,1],0.5+0.8*k*Math.abs(Math.sin(now*7)),true); }
   R.drawSkeleton(sk,charAtlas.pages[0].pma); blend=-1;
   for(const b of bullets){ const ba=Math.atan2(b.vy,b.vx), Lt=Math.min(170,(0.8-b.life)*3000+40);   // rifle tracer: long thin streak, hot head
     gshape(0,b.x,b.y,Lt,9,ba,[1,0.5,0.12],0.9,1); gshape(0,b.x,b.y,Lt*0.6,3.5,ba,[1,0.92,0.7],1,1); fx('orb_s',b.x,b.y,0.12,0,[1,0.7,0.3],0.9,true); }
@@ -113,12 +120,13 @@ function draw(dt){
   setBlend(false);
   for(const p of pieces) if(p.layer==='fgs') drawPiece(p,0,0,x0,x1,y0,y1);
   for(const p of pieces) if(p.layer==='fg') drawPiece(p,cx*(1-p.par),cy*(1-p.par),x0,x1,y0,y1);
-  // crosshair
+  // crosshair (hidden behind the menus / during the spawn and celebration)
+  if(started && !(P.intro>0) && !P.done){
   const zs=cam.zoom*(canvas.height/canvas.clientHeight), g=(6+P.recoil*8)*zs, cc=new spine.Color(0.6,1,1,0.95);
   fx('orb_s',M.wx,M.wy,0.5*zs,0,[0.4,1,1],0.35);
   R.circle(false,M.wx,M.wy,(13+P.recoil*6)*zs,cc,24); const L=12*zs, w=2*zs;
   R.rectLine(true,M.wx-g-L,M.wy,M.wx-g,M.wy,w,cc); R.rectLine(true,M.wx+g,M.wy,M.wx+g+L,M.wy,w,cc);
-  R.rectLine(true,M.wx,M.wy-g-L,M.wx,M.wy-g,w,cc); R.rectLine(true,M.wx,M.wy+g,M.wx,M.wy+g+L,w,cc);
+  R.rectLine(true,M.wx,M.wy-g-L,M.wx,M.wy-g,w,cc); R.rectLine(true,M.wx,M.wy+g,M.wx,M.wy+g+L,w,cc); }
   if(DEBUG){ const c1=new spine.Color(0,1,0,1), c2=new spine.Color(1,0,0,0.8), c3=new spine.Color(1,0,1,0.9);
     for(const s of surfaces){ if(!s.on||(s.piece&&s.piece.dead)) continue; for(let i=0;i<s.pts.length-1;i++) R.rectLine(true,s.pts[i][0],s.pts[i][1],s.pts[i+1][0],s.pts[i+1][1],3,c1); }
     for(const l of ladders) R.rect(false,l.x-20,l.bot,40,l.top-l.bot,c3);

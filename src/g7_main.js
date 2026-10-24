@@ -3,15 +3,27 @@ let last=performance.now(), fpsT=0, fpsN=0, paused=true;
 function setPause(v){ paused=v; document.body.classList.toggle('paused',v); hud('ptitle').textContent=started?'PAUSED':'CHOOSE DIFFICULTY'; hud('resume').style.display=started?'':'none'; hud('pause').style.display=paused?'grid':'none'; if(paused){ M.l=M.r=false; for(const k in K) K[k]=false; } }
 let started=false;
 let helpT=0;
-function startGame(n){ setDifficulty(n); started=true; setPause(false);
-  clearTimeout(helpT); hud('help').classList.remove('off'); helpT=setTimeout(()=>hud('help').classList.add('off'),7000);   // controls panel fades out once play starts
+// startGame: from the intro menu (first time) runs the long spawn; from the pause menu just switches difficulty and resumes
+function startGame(n){ setDifficulty(n); const first=!started; started=true; setPause(false);
+  if(first){ hud('intro').classList.add('hide'); document.body.classList.remove('menu'); camX=P.x; camY=P.y+80*HERO; camK=camKT=0.72; P.intro=INTRO_T; setTimeout(()=>{ camKT=1; },INTRO_T*700);
+    clearTimeout(helpT); helpT=setTimeout(()=>{ hud('help').classList.remove('off'); helpT=setTimeout(()=>hud('help').classList.add('off'),7000); },INTRO_T*1000); }
   if(IS_TOUCH && !document.fullscreenElement){ const de=document.documentElement; try{ const p=(de.requestFullscreen||de.webkitRequestFullscreen)?.call(de,{navigationUI:'hide'}); p&&p.then&&p.then(()=>screen.orientation?.lock?.('landscape')).catch(()=>{}); }catch(e){} } }
-addEventListener('keydown',e=>{ if(e.key==='Escape' && !P.done && started){ e.preventDefault(); setPause(!paused); }
-  if(paused && ['1','2','3'].includes(e.key)) startGame(['easy','normal','hard'][+e.key-1]); });
+// intro menu: pick a difficulty card, then PLAY (or 1/2/3 + Enter)
+let introDiff='normal';
+function pickIntro(n){ introDiff=n; document.querySelectorAll('[data-idiff]').forEach(b=>b.classList.toggle('sel',b.dataset.idiff===n)); }
+document.querySelectorAll('[data-idiff]').forEach(b=>{ b.addEventListener('click',()=>pickIntro(b.dataset.idiff)); b.addEventListener('dblclick',()=>startGame(b.dataset.idiff)); });
+hud('play').addEventListener('click',()=>startGame(introDiff));
+function replay(){ try{ sessionStorage.setItem('w2_autostart',DIFF_NAME); }catch(e){} location.reload(); }
+hud('again').addEventListener('click',replay); hud('tomenu').addEventListener('click',()=>location.reload());
+addEventListener('keydown',e=>{ if(e.key==='Escape' && !P.done && started && !(P.intro>0)){ e.preventDefault(); setPause(!paused); }
+  if(!started && ['1','2','3'].includes(e.key)) pickIntro(['easy','normal','hard'][+e.key-1]);
+  else if(paused && started && ['1','2','3'].includes(e.key)) startGame(['easy','normal','hard'][+e.key-1]);
+  if(!started && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); startGame(introDiff); }
+  if(P.done && !(P.celebrate>0) && e.key==='Enter') replay(); });
 document.querySelectorAll('[data-diff]').forEach(b=>b.addEventListener('click',ev=>{ ev.stopPropagation(); startGame(b.dataset.diff); }));
 hud('resume').addEventListener('click',()=>{ if(started) setPause(false); });
-{ let saved='normal'; try{ saved=localStorage.getItem('w2_diff')||'normal'; }catch(e){} setDifficulty(DIFFS[saved]?saved:'normal'); }
-hud('ptitle').textContent='CHOOSE DIFFICULTY'; hud('resume').style.display='none'; hud('pause').style.display='grid'; document.body.classList.add('paused');
+{ let saved='normal'; try{ saved=localStorage.getItem('w2_diff')||'normal'; }catch(e){} saved=DIFFS[saved]?saved:'normal'; setDifficulty(saved); pickIntro(saved); }
+hud('resume').style.display='none'; document.body.classList.add('paused','menu');   // intro menu is showing; the game waits paused behind it
 
 // ===================== MOBILE / TOUCH CONTROLS =====================
 const IS_TOUCH = /[?&#]mobile/.test(location.href) || (('ontouchstart' in window || navigator.maxTouchPoints>0) && matchMedia('(pointer:coarse)').matches);
@@ -42,7 +54,6 @@ if(IS_TOUCH){
   btn('bNade',()=>{ if(!paused) startThrow(); });
   btn('bZoomIn',()=>zoomBy(1/1.15)); btn('bZoomOut',()=>zoomBy(1.15));
   btn('bPause',()=>{ if(started && !P.done) setPause(!paused); });
-  hud('end').addEventListener('click',()=>{ if(P.done) location.reload(); });
   for(const h of hints){ h.text=h.text
     .replace('A/D run · Shift walk · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot','Left stick: move (push partly to walk) · JUMP (tap again mid-air to flip) · Right stick: aim & fire')
     .replace('Press W / S at a ladder to climb','Push the left stick up / down at a ladder to climb')
@@ -56,7 +67,7 @@ if(!IS_TOUCH) for(const [id,f] of [['bZoomIn',1/1.15],['bZoomOut',1.15]]) hud(id
 function frame(now){
   const real=(now-last)/1000, dt=window.__dt||Math.min(0.033,real); last=now;
   fpsT+=real; fpsN++; if(fpsT>0.5){ hud('fps').textContent=Math.round(fpsN/fpsT)+' fps'; fpsT=fpsN=0; }
-  R.resize(spine.ResizeMode.Expand); cam.zoom = VIEW_H/Math.max(1,canvas.height); cam.update();
+  R.resize(spine.ResizeMode.Expand); cam.zoom = VIEW_H*camK/Math.max(1,canvas.height); cam.update();
   if(!paused) update(dt); else if(!started && !window.__primed){ update(1/60); window.__primed=true; }
   draw(paused?0:dt);
   requestAnimationFrame(frame);
@@ -64,6 +75,8 @@ function frame(now){
 hud('src').textContent = 'Character: '+sf.src;
 hud('gemsTotal').textContent = '/'+totalCrystals;
 hud('loading').style.display='none';
+{ let auto=null; try{ auto=sessionStorage.getItem('w2_autostart'); sessionStorage.removeItem('w2_autostart'); }catch(e){}   // PLAY AGAIN: skip the menu
+  if(auto && DIFFS[auto]){ hud('intro').style.transition='none'; startGame(auto); } }
 window.__game={P,st,sk,K,M,targets,checkpoints,nades,nadePacks,startThrow,setDifficulty,swings,breakables,secrets,crystals,chests,RELIC,ladders,surfaces,placements,LEVEL_W,setView:v=>VIEW_H=v};
 requestAnimationFrame(t=>{last=t; requestAnimationFrame(frame);});
 })().catch(e=>{document.getElementById('loading').textContent='Error: '+e.message; console.error(e);});

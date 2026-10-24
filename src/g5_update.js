@@ -1,7 +1,9 @@
 // ===================== UPDATE =====================
 let cur='idle_aim', curEntry=st.getCurrent(0);
 function play(name, loop=true){ if(cur===name) return curEntry; cur=name; curEntry=st.setAnimation(0,name,loop); return curEntry; }
-const cam = R.camera; let camX=SPAWN.x+600, camY=REF_H/2;
+const cam = R.camera; let camX=SPAWN.x, camY=SPAWN.y+90*HERO;
+let camK=1, camKT=1;          // camera zoom multiplier on VIEW_H (intro / celebration close-ups), eased toward camKT
+const INTRO_T=2.6, INTRO_HIT=1.0, CELEB_T=4.2;   // intro length, time left when the beam strikes; relic celebration length
 function screenToWorld(sx,sy){ const v=new spine.Vector3(sx,sy,0); cam.screenToWorld(v, canvas.clientWidth, canvas.clientHeight); return v; }
 let toastT=0;
 function toast(text,t=3.2){ const el=hud('toast'); el.textContent=text; el.classList.add('on'); toastT=t; }
@@ -51,19 +53,30 @@ function updateWorld(dt){
   for(const c of crystals){ if(c.burst){ c.t+=dt; if(c.t<0.45){ c.x+=c.burst.vx*dt; c.y+=c.burst.vy*dt; c.burst.vy-=2400*dt; c.mag=false; } else c.mag=true; } }
   for(const cp of checkpoints){ cp.t+=dt; if(!cp.on && Math.abs(P.x-cp.x)<120 && Math.abs(P.y-cp.y)<200 && P.dead<=0){
       cp.on=true; P.cp={x:cp.x,y:cp.y}; for(const o of checkpoints) if(o!==cp && o.x<cp.x) o.on=true; toast('Checkpoint reached'); fxCheckpoint(cp.x,cp.y); } }
-  for(const h of hints){ if(!h.shown && P.x>h.x0 && P.x<h.x1 && P.y>h.ymin && P.y<h.ymax && P.dead<=0){ h.shown=true; toast(h.text,5); } }
-  if(!RELIC.taken && Math.abs(P.x-RELIC.x)<110 && Math.abs(P.y-RELIC.y)<150 && P.dead<=0){ RELIC.taken=true; P.done=true; fxRelic(RELIC.x,RELIC.y+120); fxSparkle(RELIC.x,RELIC.y+120,true); finish(); }
+  if(started && !(P.intro>0)) for(const h of hints){ if(!h.shown && P.x>h.x0 && P.x<h.x1 && P.y>h.ymin && P.y<h.ymax && P.dead<=0){ h.shown=true; toast(h.text,5); } }
+  if(!RELIC.taken && Math.abs(P.x-RELIC.x)<110 && Math.abs(P.y-RELIC.y)<150 && P.dead<=0){ RELIC.taken=true; P.done=true; fxRelic(RELIC.x,RELIC.y+120); fxSparkle(RELIC.x,RELIC.y+120,true); P.celebrate=CELEB_T; ebolts.length=0; nades.length=0; camKT=0.62; }
   toastT-=dt; if(toastT<=0) hud('toast').classList.remove('on');
 }
 function finish(){
   const t=P.time, m=Math.floor(t/60), s=Math.floor(t%60).toString().padStart(2,'0');
   hud('endstats').innerHTML=`Time <b>${m}:${s}</b><br>Crystals <b>${P.gems} / ${totalCrystals}</b><br>Treasures <b>${P.treasures} / ${chests.length}</b><br>Secrets <b>${P.secrets} / ${secrets.length}</b><br>Drones destroyed <b>${P.score}</b>`;
-  hud('end').style.display='grid';
+  hud('end').style.display='grid'; requestAnimationFrame(()=>hud('end').classList.add('on'));
 }
 
 function update(dt){
-  if(!P.done) P.time+=dt;
-  const alive = P.dead<=0 && !P.done;
+  if(!P.done && !(P.intro>0)) P.time+=dt;
+  // ---- first spawn: energy gathers into a rune circle, a beam strikes, the hero materialises ----
+  if(P.intro>0){ const was=P.intro; P.intro-=dt; const k=1-P.intro/INTRO_T;
+    if(P.intro>INTRO_HIT){ ebolts.length=0; const n=2+Math.floor(k*7); for(let i=0;i<n;i++){ const b=rnd(0,6.28), r=rnd(160,320)*(1.2-k*0.5), l=rnd(0.35,0.6), cy=P.y+60*HERO;
+        part({gs:0,x:P.x+Math.cos(b)*r,y:cy+Math.sin(b)*r,vx:-Math.cos(b)*r/l,vy:-Math.sin(b)*r/l,life:l,s0:rnd(26,44),s1:8,w:4,px:1,rgb:Math.random()<0.3?[1,0.9,0.6]:[0.45,0.95,1],k:1,line:1}); }
+      if(Math.random()<0.15+k*0.3) part({puff:(Math.random()*PUFF_N)|0,x:P.x+rnd(-90,90),y:P.y+4,vx:0,vy:rnd(20,60),rot:rnd(0,6),vr:rnd(-1,1),life:0.8,s0:20,s1:50,rgb:DUST,k:0.35,drag:2}); }
+    if(was>INTRO_HIT && P.intro<=INTRO_HIT) fxSpawnEpic(P.x,P.y);
+    if(P.intro<=0){ P.intro=0; camKT=1; P.inv=1.5; } }
+  // ---- relic celebration, then the end menu ----
+  if(P.celebrate>0){ P.celebrate-=dt; P.vx*=Math.max(0,1-6*dt);
+    if(Math.random()<dt*2.6){ const a=rnd(0.4,2.7), d=rnd(160,320); fxFirework(P.x+Math.cos(a)*d, P.y+90*HERO+Math.sin(a)*d*0.8); }
+    if(P.celebrate<=0){ P.celebrate=0; finish(); } }
+  const alive = P.dead<=0 && !P.done && !(P.intro>0);
   const left = K.a||K.arrowleft, right=K.d||K.arrowright;
   const inX = alive ? (right?1:0)-(left?1:0) : 0;
   const down = alive && (K.s||K.arrowdown);
@@ -130,7 +143,7 @@ function update(dt){
 
   // ---- base animation ----
   const speed=Math.abs(P.vx), back=P.vx*P.face<-20;
-  if(P.dead>0){} else if(P.climb){ play('walk'); } else if(P.flip>0){}
+  if(P.dead>0){} else if(P.celebrate>0 && P.ground){ play('victory',false); } else if(P.climb){ play('walk'); } else if(P.flip>0){}
   else if(!P.ground){ if(P.jet||P.vy>120) play('jump_rise'); else play('fall'); }
   else if(P.land>0 && speed<200) play('land',false);
   else if(P.crouch) play('crouch_idle');
@@ -199,7 +212,9 @@ function update(dt){
   const lookX=clamp((M.wx-P.x)*0.3,-320,320), lookY=clamp((M.wy-P.y-80*HERO)*0.25,-200,200);
   camX += (P.x+lookX-camX)*Math.min(1,dt*6); camY += (P.y+90*HERO+lookY-camY)*Math.min(1,dt*6);
   { const vw=canvas.width*cam.zoom, vh=canvas.height*cam.zoom;
-    camX=clamp(camX, vw/2, Math.max(vw/2, LEVEL_W-vw/2)); camY = vh>=REF_H-1 ? REF_H/2 : clamp(camY, vh/2, REF_H-vh/2); }
+    camX=clamp(camX, vw/2-DECOR_W, Math.max(vw/2, LEVEL_W-vw/2)); camY = vh>=REF_H-1 ? REF_H/2 : clamp(camY, vh/2, REF_H-vh/2); }
+  camK += (camKT-camK)*Math.min(1,dt*(camKT<camK?2.2:1.2));
+  if((P.intro>0||P.celebrate>0)){ camX=lerp(camX,P.x,Math.min(1,dt*5)); camY=lerp(camY,P.y+80*HERO,Math.min(1,dt*5)); }
   if(window.__camOv){ camX=window.__camOv[0]; camY=window.__camOv[1]; }
   shake=Math.max(0,shake-dt*40);
   cam.position.x=camX+(Math.random()-0.5)*shake; cam.position.y=camY+(Math.random()-0.5)*shake; cam.update();

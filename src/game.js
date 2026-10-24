@@ -187,6 +187,9 @@ const SEAM = 150;
 const TREASURE_AT = {1:'Temple offering', 2:'Lintel hoard', 7:'Hidden ledge relic box', 9:'Scaffold crate', 13:'Lintel hoard'};
 const placements=[]; { let x=0; for(const [c,m,seam] of SEQ){ const [a,b]=CHUNK[c]; if(seam) x-=SEAM; placements.push({c,a,b,m:!!m,off:x,w:b-a,seam:!!seam}); x+=b-a; } }
 const LEVEL_W = placements[placements.length-1].off + placements[placements.length-1].w;
+// out-of-bounds scenery left of x=0 so the camera can centre the hero at the start (drawn only, darkened, behind a wall)
+const DECOR=[]; { let x=0; for(const c of ['A','B']){ const [a,b]=CHUNK[c]; x-=b-a; DECOR.push({c,a,b,m:true,off:x,w:b-a,seam:false}); } }
+const DECOR_W = -DECOR[DECOR.length-1].off;
 const mapX=(pl,rx)=> pl.off + (pl.m ? (pl.b-rx) : (rx-pl.a));
 const mapY=ry=> REF_H-ry;
 const inC=(pl,rx)=> rx>=pl.a && rx<pl.b;
@@ -238,7 +241,7 @@ function hint(x0,x1,text,ymin=-1e9,ymax=1e9){ hints.push({x0,x1,ymin,ymax,text,s
 const P_OFF=i=>placements[i].off;
 // section boundaries & extras
 solid(-600,-400,600,2400);
-solid(LEVEL_W,-400,600,2400);
+solid(LEVEL_W,-400,600,2400); solid(-600,-400,600,2400);
 solid(-600,REF_H-30,LEVEL_W+1200,400);
 checkpoint(120,mapY(768));
 hint(0,500,'A/D run · Shift walk · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot');
@@ -281,12 +284,12 @@ const ENEMY = {
 const targets = enemiesDef.map(([x,y,type],i)=>({type,x,y,bx:x,by:y,vx:0,vy:0,r:ENEMY[type].r,hp:ENEMY[type].hp,dead:0,ph:i*1.7,hit:0,state:'idle',t:0,cool:1+Math.random(),aggro:0}));
 const SPAWN = {x:checkpoints[0].x, y:checkpoints[0].y};
 const P = {hp:100,inv:0,dead:0,regenT:0,hurtFlash:0,x:SPAWN.x,y:SPAWN.y,vx:0,vy:0,w:44*HERO,h:140*HERO,ground:false,gs:null,face:1,fuel:1,
-  coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,ammo:30,nades:2,throwT:0,thrown:false,throwA:0,reload:0,cool:0,recoil:0,flash:0,flashN:0,
+  coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,intro:0,celebrate:0,ammo:30,nades:2,throwT:0,thrown:false,throwA:0,reload:0,cool:0,recoil:0,flash:0,flashN:0,
   climb:null,score:0,gems:0,treasures:0,secrets:0,cp:SPAWN,time:0,done:false,stepT:0,prevY:0,aimWorld:0};
 checkpoints[0].on=true;
 const K={}, M={x:innerWidth*0.6,y:innerHeight*0.45,wx:0,wy:0,l:false,r:false};
 addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(!K[k]&&(k==='w'||k===' '||k==='arrowup'))P.buf=0.12; if(k==='r'&&!K.r)startReload(); if(k==='g'&&!K.g)startThrow();
-  if(k==='enter'&&P.done) location.reload(); K[k]=true; if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();});
+  K[k]=true; if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();});
 addEventListener('keyup',e=>{K[e.key.toLowerCase()]=false;});
 canvas.addEventListener('mousemove',e=>{M.x=e.clientX;M.y=e.clientY;});
 canvas.addEventListener('mousedown',e=>{if(e.button===1){e.preventDefault();startThrow();} if(e.button===0)M.l=true; if(e.button===2)M.r=true; canvas.focus();});
@@ -497,6 +500,26 @@ function fxSpawn(x,y){
   for(let i=0;i<16;i++){ const ox=rnd(-40,40)*HERO; part({gs:0,x:x+ox,y:y+rnd(0,H*0.5),vx:0,vy:rnd(250,520),life:rnd(0.4,0.8),s0:rnd(14,26),s1:6,w:2.5,px:1,rgb:[0.5,1,1],k:0.9,drag:1.5,line:1}); }
   for(let i=0;i<6;i++){ const s=i%2?1:-1; part({puff:(Math.random()*PUFF_N)|0,x:x+s*rnd(4,20),y:y+6,vx:s*rnd(80,200),vy:rnd(10,40),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.5,0.8),s0:20,s1:60,rgb:DUST,k:0.6,drag:3}); }
 }
+// the long first spawn's strike: thick sky beam, double shockwave, flash, debris dust, shake
+function fxSpawnEpic(x,y){
+  fxSpawn(x,y);
+  part({gs:1,x,y:y-20,rot:Math.PI/2,life:1.2,s0:1300,s1:1500,w:200*HERO,px:0,rgb:[0.3,0.8,1],k:0.85});
+  part({gs:1,x,y:y-20,rot:Math.PI/2,life:0.9,s0:1200,s1:1400,w:70*HERO,px:0,rgb:[0.9,1,1],k:1});
+  part({sp:'star4',x,y:y+60*HERO,rot:0,life:0.5,s0:2.0,s1:0.4,rgb:[0.85,1,1],tint:true,k:1.8});
+  part({sp:'star4',x,y:y+60*HERO,rot:0.78,life:0.35,s0:1.2,s1:0.3,rgb:[0.6,0.95,1],tint:true,k:1.4});
+  part({sp:'orb_big',x,y:y+50*HERO,life:0.45,s0:0.4,s1:1.5,rgb:[0.35,0.85,1],tint:true,k:0.7});
+  for(const [l,s1,sy] of [[0.7,520,0.3],[0.9,340,1],[1.1,760,0.22]]) part({ring:1,x,y:y+(sy<1?4:60*HERO),life:l,s0:40,s1,rgb:[0.45,0.95,1],k:0.9,sy});
+  for(let i=0;i<14;i++){ const s=i%2?1:-1; part({puff:(Math.random()*PUFF_N)|0,x:x+s*rnd(4,40),y:y+rnd(4,16),vx:s*rnd(160,420),vy:rnd(10,80),rot:rnd(0,6),vr:rnd(-1.2,1.2),life:rnd(0.7,1.2),s0:30,s1:rnd(90,140),rgb:DUST,k:0.7,drag:2.8}); }
+  for(let i=0;i<30;i++){ const b=rnd(0.15,2.99), s=rnd(300,900); part({gs:0,x,y:y+20,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.4,0.9),s0:rnd(16,30),s1:5,w:2.5,px:1,rgb:Math.random()<0.3?[1,0.9,0.6]:[0.5,1,1],k:1,grav:900,drag:1,line:1}); }
+  shake=Math.min(shake+18,22);
+}
+// celebration fireworks around the hero after taking the relic
+function fxFirework(x,y){
+  const c=pick([[1,0.85,0.4],[0.5,1,1],[1,0.6,0.3],[0.8,0.6,1]]);
+  part({sp:'star4',x,y,rot:rnd(0,1),life:0.18,s0:0.5,s1:0.15,rgb:c,tint:true,k:1.5});
+  part({ring:1,x,y,life:0.5,s0:20,s1:200,rgb:c,k:0.8});
+  for(let i=0;i<20;i++){ const b=i/20*6.28+rnd(-0.1,0.1), s=rnd(260,420); part({gs:0,x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.6,0.9),s0:rnd(16,26),s1:5,w:2.5,px:1,rgb:c,k:1,grav:380,drag:1.4,line:1}); }
+}
 // checkpoint lit: beacon flare shooting up from the shrine, halo, sparks
 function fxCheckpoint(x,y){
   part({gs:1,x,y:y+40,rot:Math.PI/2,life:0.8,s0:260,s1:420,w:34,px:0,rgb:[0.35,0.9,1],k:0.85});
@@ -542,7 +565,7 @@ function updateEnemies(dt){
     if(t.spawnT>0){ t.spawnT-=dt; t.aggro=0; if(t.spawnT<=0) fxDroneArrive(t.x,t.y); continue; }   // warping in: no AI yet
     const E=ENEMY[t.type], dx=px-t.x, dy=py-t.y, d=Math.hypot(dx,dy);
     if(Math.abs(dx)>2600) continue;
-    const sees = E.sense>0 && P.dead<=0 && !P.done && d<E.sense*DIFF.sense && lineOfSight(t.x,t.y,px,py);
+    const sees = E.sense>0 && P.dead<=0 && !P.done && !(P.intro>0) && d<E.sense*DIFF.sense && lineOfSight(t.x,t.y,px,py);
     t.aggro = sees ? 2.5 : Math.max(0,t.aggro-dt);
     let ax=0, ay=0;
     const hoverX=t.bx+Math.sin(t.ph*0.9)*40, hoverY=t.by+Math.sin(t.ph*1.7)*18;
@@ -580,7 +603,9 @@ function updateEnemies(dt){
 // ===================== UPDATE =====================
 let cur='idle_aim', curEntry=st.getCurrent(0);
 function play(name, loop=true){ if(cur===name) return curEntry; cur=name; curEntry=st.setAnimation(0,name,loop); return curEntry; }
-const cam = R.camera; let camX=SPAWN.x+600, camY=REF_H/2;
+const cam = R.camera; let camX=SPAWN.x, camY=SPAWN.y+90*HERO;
+let camK=1, camKT=1;          // camera zoom multiplier on VIEW_H (intro / celebration close-ups), eased toward camKT
+const INTRO_T=2.6, INTRO_HIT=1.0, CELEB_T=4.2;   // intro length, time left when the beam strikes; relic celebration length
 function screenToWorld(sx,sy){ const v=new spine.Vector3(sx,sy,0); cam.screenToWorld(v, canvas.clientWidth, canvas.clientHeight); return v; }
 let toastT=0;
 function toast(text,t=3.2){ const el=hud('toast'); el.textContent=text; el.classList.add('on'); toastT=t; }
@@ -630,19 +655,30 @@ function updateWorld(dt){
   for(const c of crystals){ if(c.burst){ c.t+=dt; if(c.t<0.45){ c.x+=c.burst.vx*dt; c.y+=c.burst.vy*dt; c.burst.vy-=2400*dt; c.mag=false; } else c.mag=true; } }
   for(const cp of checkpoints){ cp.t+=dt; if(!cp.on && Math.abs(P.x-cp.x)<120 && Math.abs(P.y-cp.y)<200 && P.dead<=0){
       cp.on=true; P.cp={x:cp.x,y:cp.y}; for(const o of checkpoints) if(o!==cp && o.x<cp.x) o.on=true; toast('Checkpoint reached'); fxCheckpoint(cp.x,cp.y); } }
-  for(const h of hints){ if(!h.shown && P.x>h.x0 && P.x<h.x1 && P.y>h.ymin && P.y<h.ymax && P.dead<=0){ h.shown=true; toast(h.text,5); } }
-  if(!RELIC.taken && Math.abs(P.x-RELIC.x)<110 && Math.abs(P.y-RELIC.y)<150 && P.dead<=0){ RELIC.taken=true; P.done=true; fxRelic(RELIC.x,RELIC.y+120); fxSparkle(RELIC.x,RELIC.y+120,true); finish(); }
+  if(started && !(P.intro>0)) for(const h of hints){ if(!h.shown && P.x>h.x0 && P.x<h.x1 && P.y>h.ymin && P.y<h.ymax && P.dead<=0){ h.shown=true; toast(h.text,5); } }
+  if(!RELIC.taken && Math.abs(P.x-RELIC.x)<110 && Math.abs(P.y-RELIC.y)<150 && P.dead<=0){ RELIC.taken=true; P.done=true; fxRelic(RELIC.x,RELIC.y+120); fxSparkle(RELIC.x,RELIC.y+120,true); P.celebrate=CELEB_T; ebolts.length=0; nades.length=0; camKT=0.62; }
   toastT-=dt; if(toastT<=0) hud('toast').classList.remove('on');
 }
 function finish(){
   const t=P.time, m=Math.floor(t/60), s=Math.floor(t%60).toString().padStart(2,'0');
   hud('endstats').innerHTML=`Time <b>${m}:${s}</b><br>Crystals <b>${P.gems} / ${totalCrystals}</b><br>Treasures <b>${P.treasures} / ${chests.length}</b><br>Secrets <b>${P.secrets} / ${secrets.length}</b><br>Drones destroyed <b>${P.score}</b>`;
-  hud('end').style.display='grid';
+  hud('end').style.display='grid'; requestAnimationFrame(()=>hud('end').classList.add('on'));
 }
 
 function update(dt){
-  if(!P.done) P.time+=dt;
-  const alive = P.dead<=0 && !P.done;
+  if(!P.done && !(P.intro>0)) P.time+=dt;
+  // ---- first spawn: energy gathers into a rune circle, a beam strikes, the hero materialises ----
+  if(P.intro>0){ const was=P.intro; P.intro-=dt; const k=1-P.intro/INTRO_T;
+    if(P.intro>INTRO_HIT){ ebolts.length=0; const n=2+Math.floor(k*7); for(let i=0;i<n;i++){ const b=rnd(0,6.28), r=rnd(160,320)*(1.2-k*0.5), l=rnd(0.35,0.6), cy=P.y+60*HERO;
+        part({gs:0,x:P.x+Math.cos(b)*r,y:cy+Math.sin(b)*r,vx:-Math.cos(b)*r/l,vy:-Math.sin(b)*r/l,life:l,s0:rnd(26,44),s1:8,w:4,px:1,rgb:Math.random()<0.3?[1,0.9,0.6]:[0.45,0.95,1],k:1,line:1}); }
+      if(Math.random()<0.15+k*0.3) part({puff:(Math.random()*PUFF_N)|0,x:P.x+rnd(-90,90),y:P.y+4,vx:0,vy:rnd(20,60),rot:rnd(0,6),vr:rnd(-1,1),life:0.8,s0:20,s1:50,rgb:DUST,k:0.35,drag:2}); }
+    if(was>INTRO_HIT && P.intro<=INTRO_HIT) fxSpawnEpic(P.x,P.y);
+    if(P.intro<=0){ P.intro=0; camKT=1; P.inv=1.5; } }
+  // ---- relic celebration, then the end menu ----
+  if(P.celebrate>0){ P.celebrate-=dt; P.vx*=Math.max(0,1-6*dt);
+    if(Math.random()<dt*2.6){ const a=rnd(0.4,2.7), d=rnd(160,320); fxFirework(P.x+Math.cos(a)*d, P.y+90*HERO+Math.sin(a)*d*0.8); }
+    if(P.celebrate<=0){ P.celebrate=0; finish(); } }
+  const alive = P.dead<=0 && !P.done && !(P.intro>0);
   const left = K.a||K.arrowleft, right=K.d||K.arrowright;
   const inX = alive ? (right?1:0)-(left?1:0) : 0;
   const down = alive && (K.s||K.arrowdown);
@@ -709,7 +745,7 @@ function update(dt){
 
   // ---- base animation ----
   const speed=Math.abs(P.vx), back=P.vx*P.face<-20;
-  if(P.dead>0){} else if(P.climb){ play('walk'); } else if(P.flip>0){}
+  if(P.dead>0){} else if(P.celebrate>0 && P.ground){ play('victory',false); } else if(P.climb){ play('walk'); } else if(P.flip>0){}
   else if(!P.ground){ if(P.jet||P.vy>120) play('jump_rise'); else play('fall'); }
   else if(P.land>0 && speed<200) play('land',false);
   else if(P.crouch) play('crouch_idle');
@@ -778,7 +814,9 @@ function update(dt){
   const lookX=clamp((M.wx-P.x)*0.3,-320,320), lookY=clamp((M.wy-P.y-80*HERO)*0.25,-200,200);
   camX += (P.x+lookX-camX)*Math.min(1,dt*6); camY += (P.y+90*HERO+lookY-camY)*Math.min(1,dt*6);
   { const vw=canvas.width*cam.zoom, vh=canvas.height*cam.zoom;
-    camX=clamp(camX, vw/2, Math.max(vw/2, LEVEL_W-vw/2)); camY = vh>=REF_H-1 ? REF_H/2 : clamp(camY, vh/2, REF_H-vh/2); }
+    camX=clamp(camX, vw/2-DECOR_W, Math.max(vw/2, LEVEL_W-vw/2)); camY = vh>=REF_H-1 ? REF_H/2 : clamp(camY, vh/2, REF_H-vh/2); }
+  camK += (camKT-camK)*Math.min(1,dt*(camKT<camK?2.2:1.2));
+  if((P.intro>0||P.celebrate>0)){ camX=lerp(camX,P.x,Math.min(1,dt*5)); camY=lerp(camY,P.y+80*HERO,Math.min(1,dt*5)); }
   if(window.__camOv){ camX=window.__camOv[0]; camY=window.__camOv[1]; }
   shake=Math.max(0,shake-dt*40);
   cam.position.x=camX+(Math.random()-0.5)*shake; cam.position.y=camY+(Math.random()-0.5)*shake; cam.update();
@@ -813,13 +851,16 @@ function draw(dt){
   const now=performance.now()/1000;
   // ---- the painted level (reference plate), chunk by chunk ----
   setBlend(false);
-  for(const pl of placements){ if(pl.off>x1||pl.off+pl.w<x0) continue;
+  for(const pl of DECOR.concat(placements)){ if(pl.off>x1||pl.off+pl.w<x0) continue;
     const ua=pl.a/imgPlate.width, ub=pl.b/imgPlate.width, uv=[ua,0,ub,1];
     if(!pl.seam) quadA(TX.plate,uv,pl.off,0,pl.off+pl.w,REF_H,[1,1,1,1],pl.m);
     else { // cross-fade the first SEAM px
       const f=SEAM/pl.w, us=pl.m? [ub-(ub-ua)*f, 0, ub, 1] : [ua,0,ua+(ub-ua)*f,1], ur=pl.m? [ua,0,ub-(ub-ua)*f,1] : [ua+(ub-ua)*f,0,ub,1];
       quadA(TX.plate,us,pl.off,0,pl.off+SEAM,REF_H,[0,0,1,1],pl.m); quadA(TX.plate,ur,pl.off+SEAM,0,pl.off+pl.w,REF_H,[1,1,1,1],pl.m); }
   }
+  if(x0<0){ R.enableRenderer(R.shapes); R.shapes.setBlendMode(gl.SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // fade the out-of-bounds scenery into the dark
+    const d0=new spine.Color(0.02,0.04,0.07,0.9), d1=new spine.Color(0.02,0.04,0.07,0.35);
+    R.quad(true,-DECOR_W,0,0,0,0,REF_H,-DECOR_W,REF_H,d0,d1,d1,d0); }
   // painted crystals glow
   for(const g of glows){ if(g.x<x0||g.x>x1) continue; const k=Math.max(0,Math.sin(now*1.3+g.ph*3)); if(k>0.9) fx('twinkle',g.x+Math.sin(g.ph)*14,g.y+10,0.35*k,0,[0.7,1,1],(k-0.9)*9); }
   // ---- hanging platforms ----
@@ -885,7 +926,11 @@ function draw(dt){
   for(const g of nades){ setBlend(false); spr(TX.nade,[0,0,1,1],g.x,g.y+9,15,20,g.rot,WHITE,false);
     if(Math.sin((1.6-g.fuse)*(8+(1.6-g.fuse)*14))>0) fx('orb_s',g.x,g.y+9,0.16,0,[1,0.25,0.1],1.2,true); }
   // player
-  sk.color.a = (P.inv>0 && P.dead<=0) ? (Math.floor(performance.now()/70)%2?0.35:1) : 1;
+  sk.color.a = !started ? 0 : P.intro>0 ? clamp((INTRO_HIT-P.intro)/0.45,0,1) : (P.inv>0 && P.dead<=0) ? (Math.floor(performance.now()/70)%2?0.35:1) : 1;
+  if(P.intro>INTRO_HIT){ const k=1-(P.intro-INTRO_HIT)/(INTRO_T-INTRO_HIT);   // rune circle + thin gathering beam before the strike
+    gring(P.x,P.y+4,(120+140*k)*HERO*1.6,[0.4,0.95,1],0.35+0.5*k,0.28); gring(P.x,P.y+4,(60+90*k)*HERO*1.6,[0.8,1,1],0.25+0.4*k*Math.abs(Math.sin(now*9)),0.28);
+    gshape(1,P.x,P.y,1100,(8+40*k*k)*HERO,Math.PI/2,[0.35,0.85,1],0.35+0.55*k,0); gshape(1,P.x,P.y,1000,(3+12*k*k)*HERO,Math.PI/2,[0.9,1,1],0.3+0.6*k,0);
+    fx('orb_m',P.x,P.y+60*HERO,0.3+0.8*k,0,[0.35,0.85,1],0.4+0.7*k,true); fx('star4',P.x,P.y+60*HERO,0.15+0.35*k,now*2,[0.8,1,1],0.5+0.8*k*Math.abs(Math.sin(now*7)),true); }
   R.drawSkeleton(sk,charAtlas.pages[0].pma); blend=-1;
   for(const b of bullets){ const ba=Math.atan2(b.vy,b.vx), Lt=Math.min(170,(0.8-b.life)*3000+40);   // rifle tracer: long thin streak, hot head
     gshape(0,b.x,b.y,Lt,9,ba,[1,0.5,0.12],0.9,1); gshape(0,b.x,b.y,Lt*0.6,3.5,ba,[1,0.92,0.7],1,1); fx('orb_s',b.x,b.y,0.12,0,[1,0.7,0.3],0.9,true); }
@@ -906,12 +951,13 @@ function draw(dt){
   setBlend(false);
   for(const p of pieces) if(p.layer==='fgs') drawPiece(p,0,0,x0,x1,y0,y1);
   for(const p of pieces) if(p.layer==='fg') drawPiece(p,cx*(1-p.par),cy*(1-p.par),x0,x1,y0,y1);
-  // crosshair
+  // crosshair (hidden behind the menus / during the spawn and celebration)
+  if(started && !(P.intro>0) && !P.done){
   const zs=cam.zoom*(canvas.height/canvas.clientHeight), g=(6+P.recoil*8)*zs, cc=new spine.Color(0.6,1,1,0.95);
   fx('orb_s',M.wx,M.wy,0.5*zs,0,[0.4,1,1],0.35);
   R.circle(false,M.wx,M.wy,(13+P.recoil*6)*zs,cc,24); const L=12*zs, w=2*zs;
   R.rectLine(true,M.wx-g-L,M.wy,M.wx-g,M.wy,w,cc); R.rectLine(true,M.wx+g,M.wy,M.wx+g+L,M.wy,w,cc);
-  R.rectLine(true,M.wx,M.wy-g-L,M.wx,M.wy-g,w,cc); R.rectLine(true,M.wx,M.wy+g,M.wx,M.wy+g+L,w,cc);
+  R.rectLine(true,M.wx,M.wy-g-L,M.wx,M.wy-g,w,cc); R.rectLine(true,M.wx,M.wy+g,M.wx,M.wy+g+L,w,cc); }
   if(DEBUG){ const c1=new spine.Color(0,1,0,1), c2=new spine.Color(1,0,0,0.8), c3=new spine.Color(1,0,1,0.9);
     for(const s of surfaces){ if(!s.on||(s.piece&&s.piece.dead)) continue; for(let i=0;i<s.pts.length-1;i++) R.rectLine(true,s.pts[i][0],s.pts[i][1],s.pts[i+1][0],s.pts[i+1][1],3,c1); }
     for(const l of ladders) R.rect(false,l.x-20,l.bot,40,l.top-l.bot,c3);
@@ -925,15 +971,27 @@ let last=performance.now(), fpsT=0, fpsN=0, paused=true;
 function setPause(v){ paused=v; document.body.classList.toggle('paused',v); hud('ptitle').textContent=started?'PAUSED':'CHOOSE DIFFICULTY'; hud('resume').style.display=started?'':'none'; hud('pause').style.display=paused?'grid':'none'; if(paused){ M.l=M.r=false; for(const k in K) K[k]=false; } }
 let started=false;
 let helpT=0;
-function startGame(n){ setDifficulty(n); started=true; setPause(false);
-  clearTimeout(helpT); hud('help').classList.remove('off'); helpT=setTimeout(()=>hud('help').classList.add('off'),7000);   // controls panel fades out once play starts
+// startGame: from the intro menu (first time) runs the long spawn; from the pause menu just switches difficulty and resumes
+function startGame(n){ setDifficulty(n); const first=!started; started=true; setPause(false);
+  if(first){ hud('intro').classList.add('hide'); document.body.classList.remove('menu'); camX=P.x; camY=P.y+80*HERO; camK=camKT=0.72; P.intro=INTRO_T; setTimeout(()=>{ camKT=1; },INTRO_T*700);
+    clearTimeout(helpT); helpT=setTimeout(()=>{ hud('help').classList.remove('off'); helpT=setTimeout(()=>hud('help').classList.add('off'),7000); },INTRO_T*1000); }
   if(IS_TOUCH && !document.fullscreenElement){ const de=document.documentElement; try{ const p=(de.requestFullscreen||de.webkitRequestFullscreen)?.call(de,{navigationUI:'hide'}); p&&p.then&&p.then(()=>screen.orientation?.lock?.('landscape')).catch(()=>{}); }catch(e){} } }
-addEventListener('keydown',e=>{ if(e.key==='Escape' && !P.done && started){ e.preventDefault(); setPause(!paused); }
-  if(paused && ['1','2','3'].includes(e.key)) startGame(['easy','normal','hard'][+e.key-1]); });
+// intro menu: pick a difficulty card, then PLAY (or 1/2/3 + Enter)
+let introDiff='normal';
+function pickIntro(n){ introDiff=n; document.querySelectorAll('[data-idiff]').forEach(b=>b.classList.toggle('sel',b.dataset.idiff===n)); }
+document.querySelectorAll('[data-idiff]').forEach(b=>{ b.addEventListener('click',()=>pickIntro(b.dataset.idiff)); b.addEventListener('dblclick',()=>startGame(b.dataset.idiff)); });
+hud('play').addEventListener('click',()=>startGame(introDiff));
+function replay(){ try{ sessionStorage.setItem('w2_autostart',DIFF_NAME); }catch(e){} location.reload(); }
+hud('again').addEventListener('click',replay); hud('tomenu').addEventListener('click',()=>location.reload());
+addEventListener('keydown',e=>{ if(e.key==='Escape' && !P.done && started && !(P.intro>0)){ e.preventDefault(); setPause(!paused); }
+  if(!started && ['1','2','3'].includes(e.key)) pickIntro(['easy','normal','hard'][+e.key-1]);
+  else if(paused && started && ['1','2','3'].includes(e.key)) startGame(['easy','normal','hard'][+e.key-1]);
+  if(!started && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); startGame(introDiff); }
+  if(P.done && !(P.celebrate>0) && e.key==='Enter') replay(); });
 document.querySelectorAll('[data-diff]').forEach(b=>b.addEventListener('click',ev=>{ ev.stopPropagation(); startGame(b.dataset.diff); }));
 hud('resume').addEventListener('click',()=>{ if(started) setPause(false); });
-{ let saved='normal'; try{ saved=localStorage.getItem('w2_diff')||'normal'; }catch(e){} setDifficulty(DIFFS[saved]?saved:'normal'); }
-hud('ptitle').textContent='CHOOSE DIFFICULTY'; hud('resume').style.display='none'; hud('pause').style.display='grid'; document.body.classList.add('paused');
+{ let saved='normal'; try{ saved=localStorage.getItem('w2_diff')||'normal'; }catch(e){} saved=DIFFS[saved]?saved:'normal'; setDifficulty(saved); pickIntro(saved); }
+hud('resume').style.display='none'; document.body.classList.add('paused','menu');   // intro menu is showing; the game waits paused behind it
 
 // ===================== MOBILE / TOUCH CONTROLS =====================
 const IS_TOUCH = /[?&#]mobile/.test(location.href) || (('ontouchstart' in window || navigator.maxTouchPoints>0) && matchMedia('(pointer:coarse)').matches);
@@ -964,7 +1022,6 @@ if(IS_TOUCH){
   btn('bNade',()=>{ if(!paused) startThrow(); });
   btn('bZoomIn',()=>zoomBy(1/1.15)); btn('bZoomOut',()=>zoomBy(1.15));
   btn('bPause',()=>{ if(started && !P.done) setPause(!paused); });
-  hud('end').addEventListener('click',()=>{ if(P.done) location.reload(); });
   for(const h of hints){ h.text=h.text
     .replace('A/D run · Shift walk · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot','Left stick: move (push partly to walk) · JUMP (tap again mid-air to flip) · Right stick: aim & fire')
     .replace('Press W / S at a ladder to climb','Push the left stick up / down at a ladder to climb')
@@ -978,7 +1035,7 @@ if(!IS_TOUCH) for(const [id,f] of [['bZoomIn',1/1.15],['bZoomOut',1.15]]) hud(id
 function frame(now){
   const real=(now-last)/1000, dt=window.__dt||Math.min(0.033,real); last=now;
   fpsT+=real; fpsN++; if(fpsT>0.5){ hud('fps').textContent=Math.round(fpsN/fpsT)+' fps'; fpsT=fpsN=0; }
-  R.resize(spine.ResizeMode.Expand); cam.zoom = VIEW_H/Math.max(1,canvas.height); cam.update();
+  R.resize(spine.ResizeMode.Expand); cam.zoom = VIEW_H*camK/Math.max(1,canvas.height); cam.update();
   if(!paused) update(dt); else if(!started && !window.__primed){ update(1/60); window.__primed=true; }
   draw(paused?0:dt);
   requestAnimationFrame(frame);
@@ -986,6 +1043,8 @@ function frame(now){
 hud('src').textContent = 'Character: '+sf.src;
 hud('gemsTotal').textContent = '/'+totalCrystals;
 hud('loading').style.display='none';
+{ let auto=null; try{ auto=sessionStorage.getItem('w2_autostart'); sessionStorage.removeItem('w2_autostart'); }catch(e){}   // PLAY AGAIN: skip the menu
+  if(auto && DIFFS[auto]){ hud('intro').style.transition='none'; startGame(auto); } }
 window.__game={P,st,sk,K,M,targets,checkpoints,nades,nadePacks,startThrow,setDifficulty,swings,breakables,secrets,crystals,chests,RELIC,ladders,surfaces,placements,LEVEL_W,setView:v=>VIEW_H=v};
 requestAnimationFrame(t=>{last=t; requestAnimationFrame(frame);});
 })().catch(e=>{document.getElementById('loading').textContent='Error: '+e.message; console.error(e);});

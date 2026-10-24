@@ -70,6 +70,27 @@ body.touch #pause h1{font-size:22px} body.touch #pause p{font-size:12px}
 body.touch #toast{font-size:12px;top:calc(76px + env(safe-area-inset-top));max-width:46vw;padding:6px 12px}
 #pause{z-index:10} body.touch .kb{display:none} body.paused #tc{display:none}
 @media (max-height:500px){ body.touch .diffs{flex-direction:row} body.touch .diffs button{width:min(28vw,220px);padding:8px 10px} body.touch .diffs button span{display:none} }
+#intro{position:fixed;inset:0;display:grid;place-items:center;z-index:12;background:radial-gradient(ellipse 60% 55% at 50% 52%,rgba(2,8,14,.15),rgba(2,8,14,.82) 75%,rgba(2,6,10,.95));transition:opacity .7s;cursor:default}
+#intro.hide{opacity:0;pointer-events:none}
+body.menu #hudL,body.menu #hudR,body.menu #help,body.menu #toast,body.menu #zoomC,body.menu #tc{display:none}
+#intro .wrap{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px}
+#intro .emb{width:74px;height:74px;filter:drop-shadow(0 0 14px rgba(60,230,255,.8));animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{50%{filter:drop-shadow(0 0 26px rgba(60,230,255,1))}}
+#intro h1{margin:6px 0 0;font-size:64px;font-weight:900;letter-spacing:.32em;padding-left:.32em;color:#e8fdff;text-shadow:0 0 24px rgba(60,230,255,.9),0 0 60px rgba(60,230,255,.4)}
+#intro h2{margin:0 0 18px;font-size:15px;font-weight:600;letter-spacing:.6em;padding-left:.6em;color:#6ff2ff;opacity:.85}
+#intro .idiffs{display:flex;gap:12px;margin:4px 0 14px}
+#intro .idiffs button{font:inherit;color:#d8f6ff;background:rgba(10,30,44,.75);border:1px solid rgba(90,230,255,.3);border-radius:8px;padding:12px 14px;cursor:pointer;width:200px;text-align:left;transition:.15s}
+#intro .idiffs button b{display:block;font-size:16px;letter-spacing:.18em;color:#9ffcff;margin-bottom:4px} #intro .idiffs button span{font-size:12px;opacity:.75;line-height:1.4}
+#intro .idiffs button:hover{border-color:#6ff2ff} #intro .idiffs button.sel{border-color:#6ff2ff;background:rgba(20,70,95,.85);box-shadow:0 0 18px rgba(60,230,255,.45)}
+#play,.endb{font:inherit;font-size:20px;font-weight:800;letter-spacing:.35em;padding:14px 46px 14px 52px;color:#05222b;background:linear-gradient(180deg,#bffcff,#4fdcf2);border:0;border-radius:8px;cursor:pointer;box-shadow:0 0 26px rgba(60,230,255,.6);transition:.15s}
+#play:hover,.endb:hover{transform:translateY(-1px);box-shadow:0 0 36px rgba(60,230,255,.9)}
+#intro .keys{margin-top:16px;font-size:12px;opacity:.6;letter-spacing:.04em;max-width:640px;line-height:1.7}
+body.touch #intro h1{font-size:34px} body.touch #intro h2{font-size:11px;margin-bottom:8px} body.touch #intro .emb{width:44px;height:44px}
+body.touch #intro .idiffs{gap:8px;margin-bottom:8px} body.touch #intro .idiffs button{width:min(27vw,190px);padding:8px 10px} body.touch #intro .idiffs button span{display:none}
+body.touch #intro .keys{display:none} body.touch #play{font-size:16px;padding:10px 34px 10px 40px}
+.endb.alt{background:rgba(10,30,44,.8);color:#cffaff;border:1px solid rgba(90,230,255,.4);box-shadow:none;font-size:15px;padding:12px 26px 12px 30px}
+#end .btns{display:flex;gap:14px;justify-content:center;margin-top:20px}
+#end{z-index:11;opacity:0;transition:opacity .8s} #end.on{opacity:1}
 #end{position:fixed;inset:0;display:none;place-items:center;background:radial-gradient(ellipse at center,rgba(10,40,60,.75),rgba(2,6,10,.92))}
 #end .box{padding:28px 44px;text-align:center}
 #end h1{margin:0 0 14px;font-size:34px;letter-spacing:.25em;color:#9ffcff;text-shadow:0 0 18px rgba(60,230,255,.8)}
@@ -112,6 +133,14 @@ body.touch #toast{font-size:12px;top:calc(76px + env(safe-area-inset-top));max-w
 <div id="rotate">Rotate your phone to landscape ⟳</div>
 <div id="meta"><div id="fps"></div><div id="src"></div></div>
 <div id="toast" class="glass"></div>
+<div id="intro"><div class="wrap"><svg class="emb" viewBox="0 0 60 60"><g fill="none" stroke="#6ff2ff" stroke-width="2.2"><path d="M30 3 L57 30 L30 57 L3 30 Z" fill="rgba(10,30,40,.7)"/><path d="M30 12 L48 30 L30 48 L12 30 Z" stroke-width="1.4" opacity=".7"/></g><path d="M21 22 L30 17 L39 22 L36 34 L30 40 L24 34 Z" fill="#6ff2ff" opacity=".9"/><path d="M26 27 h3 M31 27 h3" stroke="#05222b" stroke-width="2"/></svg>
+<h1>WARRIOR II</h1><h2>RUINS OF THE DEEP</h2>
+<div class="idiffs"><button data-idiff="easy"><b>EASY</b><span>Infinite ammo &amp; grenades. Gentle enemies.</span></button>
+<button data-idiff="normal"><b>NORMAL</b><span>Balanced fights. Find grenade crates.</span></button>
+<button data-idiff="hard"><b>HARD</b><span>Full damage, fast enemies. Pits are deadly.</span></button></div>
+<button id="play">PLAY</button>
+<div class="keys">A/D run · Shift walk · Space jump (again mid-air = flip) · Mouse aim · Left click shoot · Right click jet · G grenade · R reload · Esc pause<br>1 / 2 / 3 pick difficulty · Enter to play</div>
+</div></div>
 <div id="pause"><div class="box glass"><h1 id="ptitle">PAUSED</h1>
 <div class="diffs"><button data-diff="easy"><b>EASY</b><span>Infinite ammo &amp; grenades. Enemies hit softly and fire slowly. Fast healing.</span></button>
 <button data-diff="normal"><b>NORMAL</b><span>Balanced fights. Pits send you back to safe ground.</span></button>
@@ -119,7 +148,7 @@ body.touch #toast{font-size:12px;top:calc(76px + env(safe-area-inset-top));max-w
 <p><span class="kb">Keys 1 / 2 / 3 · </span>changing difficulty keeps your progress</p>
 <button id="resume">RESUME (Esc)</button></div></div>
 <div id="dead">YOU DIED · RETURNING TO CHECKPOINT…</div>
-<div id="end"><div class="box glass"><h1>RELIC RECOVERED</h1><div id="endstats"></div><p>Press Enter (or tap) to play again</p></div></div>
+<div id="end"><div class="box glass"><h1>RELIC RECOVERED</h1><div id="endstats"></div><div class="btns"><button id="again" class="endb">PLAY AGAIN</button><button id="tomenu" class="endb alt">MAIN MENU</button></div><p class="kb">Enter — play again</p></div></div>
 <script>/*SPINE*/</script>
 <script>/*DATA*/</script>
 <script>addEventListener('keydown',e=>{if(e.key.toLowerCase()==='h') document.getElementById('help').classList.toggle('off');});</script>
