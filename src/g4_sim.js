@@ -29,7 +29,8 @@ addEventListener('mouseup',e=>{if(e.button===0)M.l=false; if(e.button===2)M.r=fa
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('blur',()=>{for(const k in K)K[k]=false; M.l=M.r=false;});
 let VIEW_H = REF_H;
-canvas.addEventListener('wheel',e=>{e.preventDefault(); VIEW_H=clamp(VIEW_H*(e.deltaY>0?1.1:1/1.1),700,REF_H);},{passive:false});
+const zoomBy=f=>{ VIEW_H=clamp(VIEW_H*f,600,REF_H); };
+canvas.addEventListener('wheel',e=>{e.preventDefault(); zoomBy(e.deltaY>0?1.1:1/1.1);},{passive:false});
 
 const G=2150, RUN=440, WALK=230, ACC_G=3400, ACC_A=1500, FRIC=2800, JUMP=800, DJUMP=720,
       JET=3500, JET_X=1700, FUEL_USE=0.55, FUEL_REGEN=0.75, MAXVX=950, MAXUP=900, MAXDOWN=1600, KILL_Y=-90;

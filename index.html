@@ -36,20 +36,28 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0a0f17;font-family:sy
 .diffs button b{display:block;font-size:17px;letter-spacing:.15em;color:#9ffcff;margin-bottom:4px} .diffs button span{font-size:12px;opacity:.8;line-height:1.4}
 .diffs button:hover,#resume:hover{border-color:#6ff2ff;background:rgba(20,60,80,.9)} .diffs button.sel{border-color:#6ff2ff;box-shadow:0 0 14px rgba(60,230,255,.45)}
 #resume{width:auto;text-align:center;margin-top:8px;letter-spacing:.12em} #pause h1{margin:0 0 8px;font-size:34px;letter-spacing:.3em;color:#9ffcff;text-shadow:0 0 18px rgba(60,230,255,.8)} #pause p{opacity:.75;margin:0}
-html,body{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+body.touch{position:fixed;inset:0;width:100%;height:100%}
 #tc{display:none} body.touch #tc{display:block}
-.stick{position:fixed;bottom:calc(22px + env(safe-area-inset-bottom));width:150px;height:150px;border-radius:50%;background:rgba(10,30,44,.35);border:2px solid rgba(90,230,255,.35);touch-action:none;z-index:5}
-#stickL{left:calc(22px + env(safe-area-inset-left))} #stickR{right:calc(22px + env(safe-area-inset-right))}
-.stick span{position:absolute;left:0;right:0;top:-20px;text-align:center;font-size:10px;letter-spacing:.15em;opacity:.55}
-.knob{position:absolute;left:45px;top:45px;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(160,250,255,.85),rgba(40,170,210,.6));box-shadow:0 0 14px rgba(60,230,255,.5);pointer-events:none}
-.tbtn{position:fixed;width:78px;height:78px;border-radius:50%;display:grid;place-items:center;font-weight:800;letter-spacing:.08em;font-size:14px;color:#cffaff;background:rgba(10,30,44,.55);border:2px solid rgba(90,230,255,.45);touch-action:none;z-index:5}
-.tbtn.on{background:rgba(60,200,240,.5)}
-#bJump{right:calc(196px + env(safe-area-inset-right));bottom:calc(30px + env(safe-area-inset-bottom))}
-#bJet{right:calc(196px + env(safe-area-inset-right));bottom:calc(122px + env(safe-area-inset-bottom))}
-.tbtn.small{width:48px;height:48px;font-size:13px}
-#bReload{right:calc(290px + env(safe-area-inset-right));bottom:calc(30px + env(safe-area-inset-bottom))}
-#bPause{right:calc(20px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top))}
-body.touch #hudR{bottom:auto;top:calc(10px + env(safe-area-inset-top));right:calc(84px + env(safe-area-inset-right));padding:4px 10px} body.touch #hudR svg{width:56px} body.touch #ammo{font-size:20px}
+.zone{position:fixed;top:32%;bottom:0;touch-action:none;z-index:5}
+#zoneL{left:calc(26px + env(safe-area-inset-left));width:40vw} #zoneR{right:calc(26px + env(safe-area-inset-right));width:36vw}
+.stick{position:absolute;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:1.5px solid rgba(160,240,255,.22);background:rgba(10,30,44,.08);opacity:.55;pointer-events:none;transition:opacity .15s}
+#stickL{left:72px;top:calc(100% - 80px)} #stickR{left:calc(100% - 150px);top:calc(100% - 80px)}
+.stick.on{opacity:1;border-color:rgba(160,240,255,.4);transition:none}
+.knob{position:absolute;left:29px;top:29px;width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(170,250,255,.45),rgba(40,170,210,.25));pointer-events:none}
+.stick.on .knob{background:radial-gradient(circle at 35% 35%,rgba(170,250,255,.7),rgba(40,170,210,.45))}
+.tbtn{position:fixed;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-weight:700;letter-spacing:.06em;font-size:10px;color:rgba(207,250,255,.75);background:rgba(10,30,44,.18);border:1.5px solid rgba(90,230,255,.28);touch-action:none;z-index:6}
+.tbtn.on{background:rgba(60,200,240,.35);color:#fff}
+#bJump{right:calc(16px + env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom))}
+#bJet{right:calc(16px + env(safe-area-inset-right));bottom:calc(80px + env(safe-area-inset-bottom))}
+.tbtn.small{width:38px;height:38px;font-size:11px}
+#bReload{right:calc(82px + env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom))}
+#bPause{right:calc(16px + env(safe-area-inset-right));top:calc(10px + env(safe-area-inset-top))}
+#zoomC{position:fixed;right:20px;top:46px;display:flex;flex-direction:column;border-radius:17px;overflow:hidden;border:1px solid rgba(90,230,255,.28);background:rgba(10,30,44,.25);z-index:6;touch-action:none;cursor:pointer}
+#zoomC div{width:32px;height:30px;display:grid;place-items:center;font-size:18px;line-height:1;color:rgba(207,250,255,.75);-webkit-user-select:none;user-select:none}
+#zoomC div+div{border-top:1px solid rgba(90,230,255,.2)} #zoomC div.on,#zoomC div:hover{background:rgba(60,200,240,.3);color:#fff}
+body.touch #zoomC{right:calc(19px + env(safe-area-inset-right));top:calc(56px + env(safe-area-inset-top))} body.paused #zoomC{display:none}
+body.touch #hudR{bottom:auto;top:calc(10px + env(safe-area-inset-top));right:calc(64px + env(safe-area-inset-right));padding:4px 10px} body.touch #hudR svg{width:56px} body.touch #ammo{font-size:20px}
 body.touch #meta{display:none}
 #rotate{display:none;position:fixed;inset:0;place-items:center;background:#0a0f17;color:#9ffcff;font-size:20px;letter-spacing:.1em;z-index:20;text-align:center;padding:20px}
 @media (orientation:portrait){ body.touch #rotate{display:grid} }
@@ -89,11 +97,12 @@ body.touch #toast{font-size:12px;top:calc(76px + env(safe-area-inset-top));max-w
 <div><b>R</b> reload · <b style="min-width:0">Wheel</b> zoom · <b style="min-width:0">H</b> hide · <b style="min-width:0">Esc</b> pause</div>
 </div>
 <div id="tc">
- <div id="stickL" class="stick"><div id="knobL" class="knob"></div><span>MOVE</span></div>
- <div id="stickR" class="stick"><div id="knobR" class="knob"></div><span>AIM · FIRE</span></div>
+ <div id="zoneL" class="zone"><div id="stickL" class="stick"><div id="knobL" class="knob"></div></div></div>
+ <div id="zoneR" class="zone"><div id="stickR" class="stick"><div id="knobR" class="knob"></div></div></div>
  <div id="bJump" class="tbtn">JUMP</div><div id="bJet" class="tbtn">JET</div>
  <div id="bReload" class="tbtn small">R</div><div id="bPause" class="tbtn small">II</div>
 </div>
+<div id="zoomC" title="Zoom (mouse wheel)"><div id="bZoomIn">+</div><div id="bZoomOut">&minus;</div></div>
 <div id="rotate">Rotate your phone to landscape ⟳</div>
 <div id="meta"><div id="fps"></div><div id="src"></div></div>
 <div id="toast" class="glass"></div>
@@ -450,7 +459,8 @@ addEventListener('mouseup',e=>{if(e.button===0)M.l=false; if(e.button===2)M.r=fa
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('blur',()=>{for(const k in K)K[k]=false; M.l=M.r=false;});
 let VIEW_H = REF_H;
-canvas.addEventListener('wheel',e=>{e.preventDefault(); VIEW_H=clamp(VIEW_H*(e.deltaY>0?1.1:1/1.1),700,REF_H);},{passive:false});
+const zoomBy=f=>{ VIEW_H=clamp(VIEW_H*f,600,REF_H); };
+canvas.addEventListener('wheel',e=>{e.preventDefault(); zoomBy(e.deltaY>0?1.1:1/1.1);},{passive:false});
 
 const G=2150, RUN=440, WALK=230, ACC_G=3400, ACC_A=1500, FRIC=2800, JUMP=800, DJUMP=720,
       JET=3500, JET_X=1700, FUEL_USE=0.55, FUEL_REGEN=0.75, MAXVX=950, MAXUP=900, MAXDOWN=1600, KILL_Y=-90;
@@ -937,7 +947,8 @@ function draw(dt){
 let last=performance.now(), fpsT=0, fpsN=0, paused=true;
 function setPause(v){ paused=v; document.body.classList.toggle('paused',v); hud('ptitle').textContent=started?'PAUSED':'CHOOSE DIFFICULTY'; hud('resume').style.display=started?'':'none'; hud('pause').style.display=paused?'grid':'none'; if(paused){ M.l=M.r=false; for(const k in K) K[k]=false; } }
 let started=false;
-function startGame(n){ setDifficulty(n); started=true; setPause(false); }
+function startGame(n){ setDifficulty(n); started=true; setPause(false);
+  if(IS_TOUCH && !document.fullscreenElement){ const de=document.documentElement; try{ const p=(de.requestFullscreen||de.webkitRequestFullscreen)?.call(de,{navigationUI:'hide'}); p&&p.then&&p.then(()=>screen.orientation?.lock?.('landscape')).catch(()=>{}); }catch(e){} } }
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !P.done && started){ e.preventDefault(); setPause(!paused); }
   if(paused && ['1','2','3'].includes(e.key)) startGame(['easy','normal','hard'][+e.key-1]); });
 document.querySelectorAll('[data-diff]').forEach(b=>b.addEventListener('click',ev=>{ ev.stopPropagation(); startGame(b.dataset.diff); }));
@@ -953,21 +964,25 @@ if(IS_TOUCH){
   VIEW_H = 1000;
   hud('help').style.display='none';
   const tc=hud('tc');
-  // left stick: move / crouch / ladders
-  const stick=(el,knob,onMove,onEnd)=>{ let id=null, cx=0, cy=0; const R0=56;
+  // floating sticks: the ring jumps to wherever the thumb lands inside its zone, then rests faintly in a corner
+  const stick=(zone,el,knob,onMove,onEnd)=>{ let id=null, cx=0, cy=0; const R0=40;
+    const place=(x,y)=>{ el.style.left=x+'px'; el.style.top=y+'px'; };
+    const home=()=>{ el.style.left=el.style.top=''; };
     const set=(x,y)=>{ let dx=x-cx, dy=y-cy; const L=Math.hypot(dx,dy); if(L>R0){ dx*=R0/L; dy*=R0/L; } knob.style.transform=`translate(${dx}px,${dy}px)`; onMove(dx/R0,dy/R0); };
-    el.addEventListener('pointerdown',e=>{ e.preventDefault(); if(id!==null) return; id=e.pointerId; el.setPointerCapture(id); const r=el.getBoundingClientRect(); cx=r.left+r.width/2; cy=r.top+r.height/2; set(e.clientX,e.clientY); });
-    el.addEventListener('pointermove',e=>{ if(e.pointerId===id) set(e.clientX,e.clientY); });
-    const end=e=>{ if(e.pointerId!==id) return; id=null; knob.style.transform=''; onEnd(); };
-    el.addEventListener('pointerup',end); el.addEventListener('pointercancel',end); };
-  stick(hud('stickL'),hud('knobL'),(x,y)=>{ if(paused) return; K.a=x<-0.35; K.d=x>0.35; const up=y<-0.55, dn=y>0.55; if(up&&!K.w&&!P.climb){} K.w=up; K.s=dn; },()=>{ K.a=K.d=K.w=K.s=false; });
+    zone.addEventListener('pointerdown',e=>{ e.preventDefault(); if(id!==null) return; id=e.pointerId; try{ zone.setPointerCapture(id); }catch(_){} const r=zone.getBoundingClientRect();
+      const lx=clamp(e.clientX-r.left,48,Math.max(48,r.width-48)), ly=clamp(e.clientY-r.top,48,Math.max(48,r.height-48)); place(lx,ly); cx=r.left+lx; cy=r.top+ly; el.classList.add('on'); set(e.clientX,e.clientY); });
+    zone.addEventListener('pointermove',e=>{ if(e.pointerId===id) set(e.clientX,e.clientY); });
+    const end=e=>{ if(e.pointerId!==id) return; id=null; knob.style.transform=''; el.classList.remove('on'); home(); onEnd(); };
+    zone.addEventListener('pointerup',end); zone.addEventListener('pointercancel',end); };
+  stick(hud('zoneL'),hud('stickL'),hud('knobL'),(x,y)=>{ if(paused) return; K.a=x<-0.35; K.d=x>0.35; const up=y<-0.55, dn=y>0.55; if(up&&!K.w&&!P.climb){} K.w=up; K.s=dn; },()=>{ K.a=K.d=K.w=K.s=false; });
   // right stick: aim + auto-fire while pushed
-  stick(hud('stickR'),hud('knobR'),(x,y)=>{ if(paused) return; const L=Math.hypot(x,y); if(L>0.2){ TOUCH.ax=x/L; TOUCH.ay=-y/L; TOUCH.aim=true; } M.l = L>0.55; },()=>{ M.l=false; });
-  const btn=(id,down,up)=>{ const el=hud(id); el.addEventListener('pointerdown',e=>{ e.preventDefault(); el.classList.add('on'); el.setPointerCapture(e.pointerId); down(); });
+  stick(hud('zoneR'),hud('stickR'),hud('knobR'),(x,y)=>{ if(paused) return; const L=Math.hypot(x,y); if(L>0.2){ TOUCH.ax=x/L; TOUCH.ay=-y/L; TOUCH.aim=true; } M.l = L>0.55; },()=>{ M.l=false; });
+  const btn=(id,down,up)=>{ const el=hud(id); el.addEventListener('pointerdown',e=>{ e.preventDefault(); el.classList.add('on'); try{ el.setPointerCapture(e.pointerId); }catch(_){} down(); });
     const u=e=>{ el.classList.remove('on'); up&&up(); }; el.addEventListener('pointerup',u); el.addEventListener('pointercancel',u); };
   btn('bJump',()=>{ if(!paused) P.buf=0.12; K[' ']=true; },()=>{ K[' ']=false; });
   btn('bJet',()=>{ if(!paused) M.r=true; },()=>{ M.r=false; });
   btn('bReload',()=>{ if(!paused) startReload(); });
+  btn('bZoomIn',()=>zoomBy(1/1.15)); btn('bZoomOut',()=>zoomBy(1.15));
   btn('bPause',()=>{ if(started && !P.done) setPause(!paused); });
   hud('end').addEventListener('click',()=>{ if(P.done) location.reload(); });
   for(const h of hints){ h.text=h.text
@@ -975,7 +990,11 @@ if(IS_TOUCH){
     .replace('Press W / S at a ladder to climb','Push the left stick up / down at a ladder to climb')
     .replace('Hold RIGHT MOUSE or SHIFT to jet. Fuel refills on the ground','Hold JET to fly. Fuel refills on the ground'); }
   document.addEventListener('gesturestart',e=>e.preventDefault());
+  // stop the browser from panning / overscrolling / swipe-navigating while the thumbs drag
+  document.addEventListener('touchmove',e=>{ if(!e.target.closest?.('#pause .box')) e.preventDefault(); },{passive:false});
+  tc.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});
 }
+if(!IS_TOUCH) for(const [id,f] of [['bZoomIn',1/1.15],['bZoomOut',1.15]]) hud(id).addEventListener('mousedown',e=>{ e.preventDefault(); zoomBy(f); canvas.focus(); });
 function frame(now){
   const real=(now-last)/1000, dt=window.__dt||Math.min(0.033,real); last=now;
   fpsT+=real; fpsN++; if(fpsT>0.5){ hud('fps').textContent=Math.round(fpsN/fpsT)+' fps'; fpsT=fpsN=0; }
