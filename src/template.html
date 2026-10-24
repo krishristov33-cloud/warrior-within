@@ -21,7 +21,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0a0f17;font-family:sy
 .ico{color:#6ff2ff}
 #hudR{position:fixed;right:20px;bottom:18px;display:flex;align-items:center;gap:14px;padding:10px 16px;pointer-events:none}
 #ammo{font-size:30px;font-weight:800;letter-spacing:.06em;min-width:70px;text-align:right;text-shadow:0 0 10px rgba(60,230,255,.7)}
-#help{position:fixed;left:18px;bottom:16px;padding:10px 13px;font-size:12.5px;line-height:1.6;pointer-events:none}
+#help{position:fixed;left:18px;bottom:16px;padding:10px 13px;font-size:12.5px;line-height:1.6;pointer-events:none;transition:opacity .8s,transform .8s}
+#help.off{opacity:0;transform:translateY(8px)}
 #help b{color:#6ff2ff;font-weight:600;display:inline-block;min-width:122px}
 #meta{position:fixed;right:20px;top:14px;font-size:11px;opacity:.5;text-align:right;pointer-events:none}
 #toast{position:fixed;left:50%;top:14%;transform:translate(-50%,-10px);padding:10px 20px;font-size:16px;font-weight:600;letter-spacing:.04em;opacity:0;transition:.35s;pointer-events:none;text-align:center;max-width:70vw;text-shadow:0 0 10px rgba(60,230,255,.6)}
@@ -89,12 +90,12 @@ body.touch #toast{font-size:12px;top:calc(76px + env(safe-area-inset-top));max-w
  <div id="ammo">30</div>
 </div>
 <div id="help" class="glass">
-<div><b>A / D  ← →</b>move · <b style="min-width:0">S</b> crouch</div>
+<div><b>A / D  ← →</b>walk · <b style="min-width:0">Shift</b> run · <b style="min-width:0">S</b> crouch</div>
 <div><b>W / Space</b>jump · again mid-air = flip</div>
 <div><b>W / S at ladder</b>climb · <b style="min-width:0">S + Space</b> drop down</div>
 <div><b>Mouse / Left click</b>aim (turns you) · shoot</div>
-<div><b>Right click / Shift</b>jet pack</div>
-<div><b>R</b> reload · <b style="min-width:0">Wheel</b> zoom · <b style="min-width:0">H</b> hide · <b style="min-width:0">Esc</b> pause</div>
+<div><b>Right click</b>jet pack</div>
+<div><b>R</b> reload · <b style="min-width:0">Wheel</b> zoom · <b style="min-width:0">H</b> show/hide · <b style="min-width:0">Esc</b> pause</div>
 </div>
 <div id="tc">
  <div id="zoneL" class="zone"><div id="stickL" class="stick"><div id="knobL" class="knob"></div></div></div>
@@ -116,6 +117,6 @@ body.touch #toast{font-size:12px;top:calc(76px + env(safe-area-inset-top));max-w
 <div id="end"><div class="box glass"><h1>RELIC RECOVERED</h1><div id="endstats"></div><p>Press Enter (or tap) to play again</p></div></div>
 <script>/*SPINE*/</script>
 <script>/*DATA*/</script>
-<script>addEventListener('keydown',e=>{if(e.key.toLowerCase()==='h'){const h=document.getElementById('help');h.style.display=h.style.display==='none'?'':'none';}});</script>
+<script>addEventListener('keydown',e=>{if(e.key.toLowerCase()==='h') document.getElementById('help').classList.toggle('off');});</script>
 <script>/*GAME*/</script>
 </body></html>

@@ -96,10 +96,10 @@ solid(-600,-400,600,2400);
 solid(LEVEL_W,-400,600,2400);
 solid(-600,REF_H-30,LEVEL_W+1200,400);
 checkpoint(120,mapY(768));
-hint(0,500,'A/D move · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot');
+hint(0,500,'A/D walk · Shift run · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot');
 hint(330,420,'Press W / S at a ladder to climb',-1e9,700);
 hint(380,700,'Chained platforms swing and sag — use them to cross',300);
-hint(1500,1800,'Hold RIGHT MOUSE or SHIFT to jet. Fuel refills on the ground',400);
+hint(1500,1800,'Hold RIGHT MOUSE to jet. Fuel refills on the ground',400);
 // section 2 (mirrored) – crumbling stepping stones across the big drop
 { const o=P_OFF(4); checkpoint(o+140,mapY(1047));
   breakable('tile33',o+560,mapY(1000),0.62,18); breakable('tile33',o+820,mapY(930),0.62,18);

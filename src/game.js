@@ -63,6 +63,7 @@ function setBlend(add){ const b=add?1:0; if(blend===b) return; blend=b; R.enable
 function setBlendAddA(){ if(blend===2) return; blend=2; R.enableRenderer(R.batcher); R.batcher.setBlendMode(spine.BlendMode.Additive, false); }
 // gunfire shape (0 tracer, 1 spike): length along rot, pivot px along the length (0 = tail/base)
 function gshape(i,x,y,len,wid,rot,rgb,a,px=0.5){ setBlendAddA(); spr(TX.gun,[i/2,0,(i+1)/2,1],x,y,len,wid,rot,col(rgb[0],rgb[1],rgb[2],a),false,px,0.5); }
+function puffAdd(v,x,y,size,rot,rgb,a){ setBlendAddA(); spr(TX.puff,[v/PUFF_N,0,(v+1)/PUFF_N,1],x,y,size,size,rot,col(rgb[0],rgb[1],rgb[2],a),false); }
 function puff(v,x,y,size,rot,rgb,a){ setBlend(false); spr(TX.puff,[v/PUFF_N,0,(v+1)/PUFF_N,1],x,y,size,size,rot,col(rgb[0],rgb[1],rgb[2],a),false); }
 // draw texture region uv=[u0,v0,u1,v1] with pivot (px,py) fractions (y-up), world size w,h
 function spr(tex, uv, x, y, w, h, rot, col, flipX, px=0.5, py=0.5){
@@ -226,10 +227,10 @@ solid(-600,-400,600,2400);
 solid(LEVEL_W,-400,600,2400);
 solid(-600,REF_H-30,LEVEL_W+1200,400);
 checkpoint(120,mapY(768));
-hint(0,500,'A/D move · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot');
+hint(0,500,'A/D walk · Shift run · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot');
 hint(330,420,'Press W / S at a ladder to climb',-1e9,700);
 hint(380,700,'Chained platforms swing and sag — use them to cross',300);
-hint(1500,1800,'Hold RIGHT MOUSE or SHIFT to jet. Fuel refills on the ground',400);
+hint(1500,1800,'Hold RIGHT MOUSE to jet. Fuel refills on the ground',400);
 // section 2 (mirrored) – crumbling stepping stones across the big drop
 { const o=P_OFF(4); checkpoint(o+140,mapY(1047));
   breakable('tile33',o+560,mapY(1000),0.62,18); breakable('tile33',o+820,mapY(930),0.62,18);
@@ -403,6 +404,34 @@ function fxAirKick(x,y){
   for(let i=0;i<7;i++){ const b=-Math.PI/2+rnd(-1.1,1.1), s=rnd(140,300);
     part({puff:(Math.random()*PUFF_N)|0,x:x+rnd(-12,12),y:y+rnd(0,12),vx:Math.cos(b)*s,vy:Math.sin(b)*s*0.6,rot:rnd(0,6),vr:rnd(-1.2,1.2),life:rnd(0.4,0.65),s0:22,s1:rnd(55,80),rgb:[0.62,0.58,0.52],k:0.75,drag:3.5}); }
 }
+// drone warp-in: light converging into a point while the drone materialises, then a pop when it arrives
+function fxDroneSpawn(x,y){
+  part({sp:'ring1',x,y,life:0.7,s0:1.6,s1:0.15,rgb:[0.4,0.9,1],tint:true,k:0.9});
+  part({sp:'ring2',x,y,rot:1.57,life:0.55,s0:1.2,s1:0.1,rgb:[0.6,1,1],tint:true,k:0.6});
+  part({sp:'orb_m',x,y,life:0.7,s0:0.15,s1:0.55,rgb:[0.3,0.8,1],tint:true,k:0.7});
+  for(let i=0;i<16;i++){ const b=rnd(0,6.28), r=rnd(70,130), l=rnd(0.35,0.65);
+    part({gs:0,x:x+Math.cos(b)*r,y:y+Math.sin(b)*r,vx:-Math.cos(b)*r/l,vy:-Math.sin(b)*r/l,life:l,s0:20,s1:8,w:3,px:1,rgb:[0.5,0.95,1],k:0.9,line:1}); }
+}
+function fxDroneArrive(x,y){
+  part({sp:'star4',x,y,rot:rnd(0,1),life:0.18,s0:0.45,s1:0.15,rgb:[0.7,1,1],tint:true,k:1.4});
+  part({sp:'orb_s',x,y,life:0.25,s0:0.5,s1:1.2,rgb:[0.4,0.9,1],tint:true,k:0.8});
+  part({sp:'ring1',x,y,life:0.3,s0:0.3,s1:1.1,rgb:[0.5,1,1],tint:true,k:0.7});
+}
+// drone destroyed: flash, fireball, shockwave, shrapnel sparks, burning bits and a rolling smoke cloud
+function fxBlast(x,y,sc=1){
+  part({sp:'star4',x,y,rot:rnd(0,1),life:0.08,s0:0.7*sc,s1:0.4*sc,rgb:[1,0.95,0.8],tint:true,k:1.6});
+  part({sp:'orb_big',x,y,life:0.14,s0:0.2*sc,s1:0.45*sc,rgb:[1,0.5,0.12],tint:true,k:0.8});
+  part({sp:'ring1',x,y,life:0.3,s0:0.4*sc,s1:2.2*sc,rgb:[1,0.6,0.25],tint:true,k:0.8});
+  for(let i=0;i<11;i++){ const b=rnd(0,6.28), s=rnd(140,360)*sc;
+    part({puff:(Math.random()*PUFF_N)|0,add:1,x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s+60,rot:rnd(0,6),vr:rnd(-2,2),life:rnd(0.25,0.45),s0:16*sc,s1:rnd(45,75)*sc,rgb:[1,rnd(0.28,0.55),0.05],k:0.6,drag:4}); }
+  for(let i=0;i<7;i++){ const b=rnd(0,6.28), s=rnd(40,140)*sc;
+    part({puff:(Math.random()*PUFF_N)|0,x:x+rnd(-15,15),y:y+rnd(-15,15),vx:Math.cos(b)*s,vy:Math.sin(b)*s*0.5+rnd(40,110),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(1.0,1.6),s0:30*sc,s1:rnd(100,140)*sc,rgb:[0.22,0.2,0.19],k:0.7,drag:1.6}); }
+  for(let i=0;i<16;i++){ const b=rnd(0,6.28), s=rnd(400,1000)*sc;
+    part({gs:0,x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.25,0.55),s0:rnd(18,32),s1:5,w:3,px:1,rgb:[1,rnd(0.5,0.85),0.2],k:1,grav:1100,drag:1.5,line:1}); }
+  for(let i=0;i<6;i++){ const b=rnd(0.3,2.84), s=rnd(250,520)*sc;
+    part({puff:(Math.random()*PUFF_N)|0,x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,rot:rnd(0,6),vr:rnd(-8,8),life:rnd(0.6,1.0),s0:10,s1:7,rgb:[0.16,0.15,0.15],k:1,grav:1500,drag:0.5}); }
+  shake=Math.min(shake+9*sc,16);
+}
 function fxDust(x,y){ part({puff:(Math.random()*PUFF_N)|0,x,y:y+10,vx:-P.vx*0.15+rnd(-30,30),vy:rnd(15,45),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.45,0.65),s0:18,s1:48,rgb:DUST,k:0.55,drag:2}); }
 function fxHurt(x,y){ part({sp:'zap',x,y,rot:rnd(0,6),life:0.2,s0:0.6,s1:0.9,rgb:[1,0.3,0.25],tint:true,k:1.2}); part({sp:'star_b',x,y,life:0.12,s0:0.6,s1:0.9,rgb:[1,0.4,0.3],tint:true,k:1}); }
 function fxSpawn(x,y){ part({sp:'ripple',x,y:y+8,life:0.7,s0:0.6,s1:2.2,rgb:[0.4,1,1],k:1}); part({sp:'orb_big',x,y:y+90,life:0.5,s0:1,s1:2.4,rgb:[0.4,0.9,1],k:0.8}); part({sp:'sparks_up2',x,y:y+60,life:0.6,s0:0.9,s1:1.4,rgb:[0.5,1,1],k:1}); }
@@ -425,7 +454,8 @@ function updateEnemies(dt){
   const px=P.x, py=P.y+85*HERO;
   for(const t of targets){
     t.ph+=dt; t.hit=Math.max(0,t.hit-dt);
-    if(t.dead>0){ t.dead-=dt; if(t.dead<=0){ t.hp=ENEMY[t.type].hp; t.x=t.bx; t.y=t.by; t.vx=t.vy=0; t.state='idle'; fxSpawn(t.bx,t.by-90);} continue; }
+    if(t.dead>0){ t.dead-=dt; if(t.dead<=0){ t.hp=ENEMY[t.type].hp; t.x=t.bx; t.y=t.by; t.vx=t.vy=0; t.state='idle'; t.spawnT=0.7; fxDroneSpawn(t.bx,t.by);} continue; }
+    if(t.spawnT>0){ t.spawnT-=dt; t.aggro=0; if(t.spawnT<=0) fxDroneArrive(t.x,t.y); continue; }   // warping in: no AI yet
     const E=ENEMY[t.type], dx=px-t.x, dy=py-t.y, d=Math.hypot(dx,dy);
     if(Math.abs(dx)>2600) continue;
     const sees = E.sense>0 && P.dead<=0 && !P.done && d<E.sense*DIFF.sense && lineOfSight(t.x,t.y,px,py);
@@ -529,7 +559,7 @@ function update(dt){
   const inX = alive ? (right?1:0)-(left?1:0) : 0;
   const down = alive && (K.s||K.arrowdown);
   P.crouch = down && P.ground && !P.climb;
-  const jetBtn = alive && (M.r || K.shift);
+  const jetBtn = alive && M.r;
   if(!alive) P.buf=0;
   if(TOUCH.active){ M.wx=P.x+TOUCH.ax*520; M.wy=P.y+95*HERO+TOUCH.ay*520; } else { const mw=screenToWorld(M.x,M.y); M.wx=mw.x; M.wy=mw.y; }
   // the mouse alone decides which way the warrior faces
@@ -550,7 +580,7 @@ function update(dt){
     if(P.climb && P.buf>0){ P.climb=null; P.buf=0; P.vy=JUMP*0.85; P.vx=inX*RUN*0.7; }
     if(P.climb) P.y=clamp(P.y,l.bot-2,l.top+2);
   }
-  const maxv = P.crouch?WALK*0.6 : RUN;
+  const maxv = P.crouch?WALK*0.6 : K.shift?RUN:WALK;   // walk by default, hold Shift to run
   if(P.climb){ moveAndCollide(dt); }
   else {
   if(P.ground){
@@ -645,7 +675,7 @@ function update(dt){
       if(pointSolid(b.x,b.y) || floorHit(px,py,b.x,b.y)){ b.life=0; fxImpact(b.x,b.y,b.ang); break; }
       for(const t of targets){ if(t.dead<=0 && Math.hypot(b.x-t.x,b.y-t.y)<t.r+6){ b.life=0; t.hp--; t.hit=0.16; t.aggro=2.5; t.vx+=b.vx*0.04; t.vy+=b.vy*0.04; if(t.state==='windup') t.t+=0.12;
           fxImpact(b.x,b.y,b.ang);
-          if(t.hp<=0){ t.dead=4; P.score++; fxExplode(t.x,t.y,ENEMY[t.type].col,0.7); } break; } }
+          if(t.hp<=0){ t.dead=4; P.score++; fxBlast(t.x,t.y,0.8); } break; } }
     }
   }
   for(let i=bullets.length-1;i>=0;i--) if(bullets[i].life<=0) bullets.splice(i,1);
@@ -735,7 +765,8 @@ function draw(dt){
     // face the player when alert, else the way it drifts
     if(alert) t.face=P.x>t.x?1:-1; else if(Math.abs(t.vx)>25) t.face=Math.sign(t.vx); const f=t.face||1;
     const rot=clamp(-t.vx*0.0009,-0.35,0.35)+Math.sin(t.ph*1.9)*0.04 + (t.state==='dash'?0:0);
-    const W=t.r*3.1*(E.dscale||1), H=W*165/202, zs=W/130, c=Math.cos(rot), s=Math.sin(rot);
+    const sp=t.spawnT>0?1-t.spawnT/0.7:1;                                  // materialise: grow in while warping
+    const W=t.r*3.1*(E.dscale||1)*(0.2+0.8*sp*sp), H=W*165/202, zs=W/130, c=Math.cos(rot), s=Math.sin(rot);
     const at=(u,v)=>{ const dx=(u-0.5)*W*f, dy=(0.42-v)*H; return [x+c*dx-s*dy, y+s*dx+c*dy]; };   // sprite fraction (u from left, v from top) -> world
     const eyeCol=[lerp(0.35,E.col[0],alert?1:0),lerp(0.95,E.col[1],alert?1:0),lerp(1,E.col[2],alert?1:0)];
     // downdraft haze under the rotors
@@ -744,7 +775,8 @@ function draw(dt){
     if(t.state==='dash') fx('ribbon',x,y,0.6*zs,Math.atan2(t.vy,t.vx)+Math.PI,E.col,0.8,true,false,0.05,0.5);
     // hit: tint the body red (darken green/blue, then add a red glow masked by the sprite's alpha)
     const hk=t.hit>0?Math.min(1,t.hit/0.08):0;
-    setBlend(false); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,hk?col(1,1-0.6*hk,1-0.65*hk,1):WHITE,f<0,0.5,0.58);
+    setBlend(false); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,hk?col(1,1-0.6*hk,1-0.65*hk,1):col(1,1,1,sp),f<0,0.5,0.58);
+    if(sp<1){ setBlendAddA(); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,col(0.3*(1-sp),0.9*(1-sp),1-sp,1),f<0,0.5,0.58); }   // cyan energy fading out
     if(hk){ setBlendAddA(); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,col(0.75*hk,0.08*hk,0.04*hk,1),f<0,0.5,0.58); }
     // spinning rotor blur over both discs
     for(const [u,v,ph] of [[0.22,0.12,0],[0.79,0.18,1.7]]){ const [rx,ry]=at(u,v), sp=t.ph*38+ph;
@@ -754,7 +786,7 @@ function draw(dt){
     const [ex,ey]=at(0.69,0.46), pulse=0.6+0.4*Math.sin(t.ph*6);
     fx('orb_s',ex,ey,W/300*(1+0.25*pulse),0,eyeCol,alert?0.9:0.55,true);
     if(charging){ fx('orb_m',ex,ey,(0.35+k*0.9)*zs,0,E.col,0.4+0.6*k,true); fx('twinkle',ex,ey,(0.25+k*0.5)*zs,k*3,E.col,k,true); }
-    for(let i=0;i<E.hp;i++) R.rect(true,x-E.hp*4.5+i*9,y-H*0.62-4,7,3,i<t.hp?col(0.3,1,0.8,1):col(0.3,0.3,0.3,1));
+    if(sp>=1) for(let i=0;i<E.hp;i++) R.rect(true,x-E.hp*4.5+i*9,y-H*0.62-4,7,3,i<t.hp?col(0.3,1,0.8,1):col(0.3,0.3,0.3,1));
   }
   for(const b of ebolts){ fx('fireball',b.x,b.y,0.12,b.a,[1,0.5,0.18],1.3,true,true,0.85,0.5); fx('orb_s',b.x,b.y,0.18,0,[1,0.6,0.2],0.75,true); }
   // player
@@ -765,7 +797,7 @@ function draw(dt){
   for(const p of parts){ if(p.x<x0-300||p.x>x1+300||p.y<y0-300||p.y>y1+300) continue;
     const t=1-p.life/p.max, s=lerp(p.s0,p.s1,t);
     if(p.gs!==undefined){ const r=p.line?Math.atan2(p.vy,p.vx):p.rot; gshape(p.gs,p.x,p.y,s,p.w,r,p.rgb,p.k*Math.max(0,p.life/p.max),p.px??0.5); continue; }
-    if(p.puff!==undefined){ puff(p.puff,p.x,p.y,s,p.rot,p.rgb,p.k*Math.min(1,t*7)*Math.pow(Math.max(0,1-t),1.4)); continue; }
+    if(p.puff!==undefined){ (p.add?puffAdd:puff)(p.puff,p.x,p.y,s,p.rot,p.rgb,p.k*Math.min(1,t*7)*Math.pow(Math.max(0,1-t),1.4)); continue; }
     const a=p.k*Math.pow(Math.max(0,p.life/p.max),0.6);
     fx(p.sp,p.x,p.y,s,p.rot,p.rgb,a,p.tint,p.flipX,p.px??0.5,p.py??0.5,p.sx??1); }
   // ambient embers & motes
@@ -796,7 +828,9 @@ function draw(dt){
 let last=performance.now(), fpsT=0, fpsN=0, paused=true;
 function setPause(v){ paused=v; document.body.classList.toggle('paused',v); hud('ptitle').textContent=started?'PAUSED':'CHOOSE DIFFICULTY'; hud('resume').style.display=started?'':'none'; hud('pause').style.display=paused?'grid':'none'; if(paused){ M.l=M.r=false; for(const k in K) K[k]=false; } }
 let started=false;
+let helpT=0;
 function startGame(n){ setDifficulty(n); started=true; setPause(false);
+  clearTimeout(helpT); hud('help').classList.remove('off'); helpT=setTimeout(()=>hud('help').classList.add('off'),7000);   // controls panel fades out once play starts
   if(IS_TOUCH && !document.fullscreenElement){ const de=document.documentElement; try{ const p=(de.requestFullscreen||de.webkitRequestFullscreen)?.call(de,{navigationUI:'hide'}); p&&p.then&&p.then(()=>screen.orientation?.lock?.('landscape')).catch(()=>{}); }catch(e){} } }
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !P.done && started){ e.preventDefault(); setPause(!paused); }
   if(paused && ['1','2','3'].includes(e.key)) startGame(['easy','normal','hard'][+e.key-1]); });
@@ -823,7 +857,7 @@ if(IS_TOUCH){
     zone.addEventListener('pointermove',e=>{ if(e.pointerId===id) set(e.clientX,e.clientY); });
     const end=e=>{ if(e.pointerId!==id) return; id=null; knob.style.transform=''; el.classList.remove('on'); home(); onEnd(); };
     zone.addEventListener('pointerup',end); zone.addEventListener('pointercancel',end); };
-  stick(hud('zoneL'),hud('stickL'),hud('knobL'),(x,y)=>{ if(paused) return; K.a=x<-0.35; K.d=x>0.35; const up=y<-0.55, dn=y>0.55; if(up&&!K.w&&!P.climb){} K.w=up; K.s=dn; },()=>{ K.a=K.d=K.w=K.s=false; });
+  stick(hud('zoneL'),hud('stickL'),hud('knobL'),(x,y)=>{ if(paused) return; K.a=x<-0.35; K.d=x>0.35; K.shift=Math.abs(x)>0.85; const up=y<-0.55, dn=y>0.55; if(up&&!K.w&&!P.climb){} K.w=up; K.s=dn; },()=>{ K.a=K.d=K.w=K.s=K.shift=false; });
   // right stick: aim + auto-fire while pushed
   stick(hud('zoneR'),hud('stickR'),hud('knobR'),(x,y)=>{ if(paused) return; const L=Math.hypot(x,y); if(L>0.2){ TOUCH.ax=x/L; TOUCH.ay=-y/L; TOUCH.aim=true; } M.l = L>0.55; },()=>{ M.l=false; });
   const btn=(id,down,up)=>{ const el=hud(id); el.addEventListener('pointerdown',e=>{ e.preventDefault(); el.classList.add('on'); try{ el.setPointerCapture(e.pointerId); }catch(_){} down(); });
@@ -835,9 +869,9 @@ if(IS_TOUCH){
   btn('bPause',()=>{ if(started && !P.done) setPause(!paused); });
   hud('end').addEventListener('click',()=>{ if(P.done) location.reload(); });
   for(const h of hints){ h.text=h.text
-    .replace('A/D move · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot','Left stick: move · JUMP (tap again mid-air to flip) · Right stick: aim & fire')
+    .replace('A/D walk · Shift run · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot','Left stick: move (push fully to run) · JUMP (tap again mid-air to flip) · Right stick: aim & fire')
     .replace('Press W / S at a ladder to climb','Push the left stick up / down at a ladder to climb')
-    .replace('Hold RIGHT MOUSE or SHIFT to jet. Fuel refills on the ground','Hold JET to fly. Fuel refills on the ground'); }
+    .replace('Hold RIGHT MOUSE to jet. Fuel refills on the ground','Hold JET to fly. Fuel refills on the ground'); }
   document.addEventListener('gesturestart',e=>e.preventDefault());
   // stop the browser from panning / overscrolling / swipe-navigating while the thumbs drag
   document.addEventListener('touchmove',e=>{ if(!e.target.closest?.('#pause .box')) e.preventDefault(); },{passive:false});

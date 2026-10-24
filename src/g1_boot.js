@@ -63,6 +63,7 @@ function setBlend(add){ const b=add?1:0; if(blend===b) return; blend=b; R.enable
 function setBlendAddA(){ if(blend===2) return; blend=2; R.enableRenderer(R.batcher); R.batcher.setBlendMode(spine.BlendMode.Additive, false); }
 // gunfire shape (0 tracer, 1 spike): length along rot, pivot px along the length (0 = tail/base)
 function gshape(i,x,y,len,wid,rot,rgb,a,px=0.5){ setBlendAddA(); spr(TX.gun,[i/2,0,(i+1)/2,1],x,y,len,wid,rot,col(rgb[0],rgb[1],rgb[2],a),false,px,0.5); }
+function puffAdd(v,x,y,size,rot,rgb,a){ setBlendAddA(); spr(TX.puff,[v/PUFF_N,0,(v+1)/PUFF_N,1],x,y,size,size,rot,col(rgb[0],rgb[1],rgb[2],a),false); }
 function puff(v,x,y,size,rot,rgb,a){ setBlend(false); spr(TX.puff,[v/PUFF_N,0,(v+1)/PUFF_N,1],x,y,size,size,rot,col(rgb[0],rgb[1],rgb[2],a),false); }
 // draw texture region uv=[u0,v0,u1,v1] with pivot (px,py) fractions (y-up), world size w,h
 function spr(tex, uv, x, y, w, h, rot, col, flipX, px=0.5, py=0.5){

@@ -153,6 +153,34 @@ function fxAirKick(x,y){
   for(let i=0;i<7;i++){ const b=-Math.PI/2+rnd(-1.1,1.1), s=rnd(140,300);
     part({puff:(Math.random()*PUFF_N)|0,x:x+rnd(-12,12),y:y+rnd(0,12),vx:Math.cos(b)*s,vy:Math.sin(b)*s*0.6,rot:rnd(0,6),vr:rnd(-1.2,1.2),life:rnd(0.4,0.65),s0:22,s1:rnd(55,80),rgb:[0.62,0.58,0.52],k:0.75,drag:3.5}); }
 }
+// drone warp-in: light converging into a point while the drone materialises, then a pop when it arrives
+function fxDroneSpawn(x,y){
+  part({sp:'ring1',x,y,life:0.7,s0:1.6,s1:0.15,rgb:[0.4,0.9,1],tint:true,k:0.9});
+  part({sp:'ring2',x,y,rot:1.57,life:0.55,s0:1.2,s1:0.1,rgb:[0.6,1,1],tint:true,k:0.6});
+  part({sp:'orb_m',x,y,life:0.7,s0:0.15,s1:0.55,rgb:[0.3,0.8,1],tint:true,k:0.7});
+  for(let i=0;i<16;i++){ const b=rnd(0,6.28), r=rnd(70,130), l=rnd(0.35,0.65);
+    part({gs:0,x:x+Math.cos(b)*r,y:y+Math.sin(b)*r,vx:-Math.cos(b)*r/l,vy:-Math.sin(b)*r/l,life:l,s0:20,s1:8,w:3,px:1,rgb:[0.5,0.95,1],k:0.9,line:1}); }
+}
+function fxDroneArrive(x,y){
+  part({sp:'star4',x,y,rot:rnd(0,1),life:0.18,s0:0.45,s1:0.15,rgb:[0.7,1,1],tint:true,k:1.4});
+  part({sp:'orb_s',x,y,life:0.25,s0:0.5,s1:1.2,rgb:[0.4,0.9,1],tint:true,k:0.8});
+  part({sp:'ring1',x,y,life:0.3,s0:0.3,s1:1.1,rgb:[0.5,1,1],tint:true,k:0.7});
+}
+// drone destroyed: flash, fireball, shockwave, shrapnel sparks, burning bits and a rolling smoke cloud
+function fxBlast(x,y,sc=1){
+  part({sp:'star4',x,y,rot:rnd(0,1),life:0.08,s0:0.7*sc,s1:0.4*sc,rgb:[1,0.95,0.8],tint:true,k:1.6});
+  part({sp:'orb_big',x,y,life:0.14,s0:0.2*sc,s1:0.45*sc,rgb:[1,0.5,0.12],tint:true,k:0.8});
+  part({sp:'ring1',x,y,life:0.3,s0:0.4*sc,s1:2.2*sc,rgb:[1,0.6,0.25],tint:true,k:0.8});
+  for(let i=0;i<11;i++){ const b=rnd(0,6.28), s=rnd(140,360)*sc;
+    part({puff:(Math.random()*PUFF_N)|0,add:1,x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s+60,rot:rnd(0,6),vr:rnd(-2,2),life:rnd(0.25,0.45),s0:16*sc,s1:rnd(45,75)*sc,rgb:[1,rnd(0.28,0.55),0.05],k:0.6,drag:4}); }
+  for(let i=0;i<7;i++){ const b=rnd(0,6.28), s=rnd(40,140)*sc;
+    part({puff:(Math.random()*PUFF_N)|0,x:x+rnd(-15,15),y:y+rnd(-15,15),vx:Math.cos(b)*s,vy:Math.sin(b)*s*0.5+rnd(40,110),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(1.0,1.6),s0:30*sc,s1:rnd(100,140)*sc,rgb:[0.22,0.2,0.19],k:0.7,drag:1.6}); }
+  for(let i=0;i<16;i++){ const b=rnd(0,6.28), s=rnd(400,1000)*sc;
+    part({gs:0,x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.25,0.55),s0:rnd(18,32),s1:5,w:3,px:1,rgb:[1,rnd(0.5,0.85),0.2],k:1,grav:1100,drag:1.5,line:1}); }
+  for(let i=0;i<6;i++){ const b=rnd(0.3,2.84), s=rnd(250,520)*sc;
+    part({puff:(Math.random()*PUFF_N)|0,x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,rot:rnd(0,6),vr:rnd(-8,8),life:rnd(0.6,1.0),s0:10,s1:7,rgb:[0.16,0.15,0.15],k:1,grav:1500,drag:0.5}); }
+  shake=Math.min(shake+9*sc,16);
+}
 function fxDust(x,y){ part({puff:(Math.random()*PUFF_N)|0,x,y:y+10,vx:-P.vx*0.15+rnd(-30,30),vy:rnd(15,45),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.45,0.65),s0:18,s1:48,rgb:DUST,k:0.55,drag:2}); }
 function fxHurt(x,y){ part({sp:'zap',x,y,rot:rnd(0,6),life:0.2,s0:0.6,s1:0.9,rgb:[1,0.3,0.25],tint:true,k:1.2}); part({sp:'star_b',x,y,life:0.12,s0:0.6,s1:0.9,rgb:[1,0.4,0.3],tint:true,k:1}); }
 function fxSpawn(x,y){ part({sp:'ripple',x,y:y+8,life:0.7,s0:0.6,s1:2.2,rgb:[0.4,1,1],k:1}); part({sp:'orb_big',x,y:y+90,life:0.5,s0:1,s1:2.4,rgb:[0.4,0.9,1],k:0.8}); part({sp:'sparks_up2',x,y:y+60,life:0.6,s0:0.9,s1:1.4,rgb:[0.5,1,1],k:1}); }
@@ -175,7 +203,8 @@ function updateEnemies(dt){
   const px=P.x, py=P.y+85*HERO;
   for(const t of targets){
     t.ph+=dt; t.hit=Math.max(0,t.hit-dt);
-    if(t.dead>0){ t.dead-=dt; if(t.dead<=0){ t.hp=ENEMY[t.type].hp; t.x=t.bx; t.y=t.by; t.vx=t.vy=0; t.state='idle'; fxSpawn(t.bx,t.by-90);} continue; }
+    if(t.dead>0){ t.dead-=dt; if(t.dead<=0){ t.hp=ENEMY[t.type].hp; t.x=t.bx; t.y=t.by; t.vx=t.vy=0; t.state='idle'; t.spawnT=0.7; fxDroneSpawn(t.bx,t.by);} continue; }
+    if(t.spawnT>0){ t.spawnT-=dt; t.aggro=0; if(t.spawnT<=0) fxDroneArrive(t.x,t.y); continue; }   // warping in: no AI yet
     const E=ENEMY[t.type], dx=px-t.x, dy=py-t.y, d=Math.hypot(dx,dy);
     if(Math.abs(dx)>2600) continue;
     const sees = E.sense>0 && P.dead<=0 && !P.done && d<E.sense*DIFF.sense && lineOfSight(t.x,t.y,px,py);

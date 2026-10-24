@@ -64,7 +64,7 @@ function update(dt){
   const inX = alive ? (right?1:0)-(left?1:0) : 0;
   const down = alive && (K.s||K.arrowdown);
   P.crouch = down && P.ground && !P.climb;
-  const jetBtn = alive && (M.r || K.shift);
+  const jetBtn = alive && M.r;
   if(!alive) P.buf=0;
   if(TOUCH.active){ M.wx=P.x+TOUCH.ax*520; M.wy=P.y+95*HERO+TOUCH.ay*520; } else { const mw=screenToWorld(M.x,M.y); M.wx=mw.x; M.wy=mw.y; }
   // the mouse alone decides which way the warrior faces
@@ -85,7 +85,7 @@ function update(dt){
     if(P.climb && P.buf>0){ P.climb=null; P.buf=0; P.vy=JUMP*0.85; P.vx=inX*RUN*0.7; }
     if(P.climb) P.y=clamp(P.y,l.bot-2,l.top+2);
   }
-  const maxv = P.crouch?WALK*0.6 : RUN;
+  const maxv = P.crouch?WALK*0.6 : K.shift?RUN:WALK;   // walk by default, hold Shift to run
   if(P.climb){ moveAndCollide(dt); }
   else {
   if(P.ground){
@@ -180,7 +180,7 @@ function update(dt){
       if(pointSolid(b.x,b.y) || floorHit(px,py,b.x,b.y)){ b.life=0; fxImpact(b.x,b.y,b.ang); break; }
       for(const t of targets){ if(t.dead<=0 && Math.hypot(b.x-t.x,b.y-t.y)<t.r+6){ b.life=0; t.hp--; t.hit=0.16; t.aggro=2.5; t.vx+=b.vx*0.04; t.vy+=b.vy*0.04; if(t.state==='windup') t.t+=0.12;
           fxImpact(b.x,b.y,b.ang);
-          if(t.hp<=0){ t.dead=4; P.score++; fxExplode(t.x,t.y,ENEMY[t.type].col,0.7); } break; } }
+          if(t.hp<=0){ t.dead=4; P.score++; fxBlast(t.x,t.y,0.8); } break; } }
     }
   }
   for(let i=bullets.length-1;i>=0;i--) if(bullets[i].life<=0) bullets.splice(i,1);
