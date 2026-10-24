@@ -54,24 +54,31 @@ function draw(dt){
     const bob=c.mag?0:Math.sin(c.ph*2.2)*8, sxs=Math.abs(Math.cos(c.ph*1.6))*0.8+0.2;
     fx('orb_s',c.x,c.y+bob,0.5,0,[0.25,0.85,1],0.35); fx('diamond',c.x,c.y+bob,0.5,0,[0.75,1,1],1.25,false,false,0.5,0.5,sxs);
     if(Math.sin(c.ph*3+c.x)>0.97) fx('twinkle',c.x+10,c.y+bob+14,0.3,0,[0.8,1,1],1); }
-  // enemies
+  // enemies: drone sprite (faces right) + rotor blur, eye glow, thruster haze, hit flash
   for(const t of targets){ if(t.dead>0||t.x<x0-200||t.x>x1+200) continue;
-    const E=ENEMY[t.type], [cr,cg,cb]=E.col, pulse=0.6+0.4*Math.sin(t.ph*6);
-    let x=t.x, y=t.y; if(t.state==='windup'){ x+=(Math.random()-0.5)*6; y+=(Math.random()-0.5)*6; }
-    const alert=t.aggro>0;
-    fx('orb_soft',x,y,(t.r/40)*(alert?1.3:1),0,E.col,alert?0.55:0.3,true);
-    if(t.state==='charge'||t.state==='windup'){ const k=1-t.t/0.55; fx('orb_m',x,y,0.6+k*1.2,0,E.col,0.4+0.6*k,true); fx('twinkle',x,y,0.3+k*0.6,k*3,E.col,k,true); }
+    const E=ENEMY[t.type], alert=t.aggro>0, charging=t.state==='charge'||t.state==='windup', k=charging?1-t.t/0.55:0;
+    let x=t.x, y=t.y+Math.sin(t.ph*3.1)*4; if(t.state==='windup'){ x+=(Math.random()-0.5)*6; y+=(Math.random()-0.5)*6; }
+    // face the player when alert, else the way it drifts
+    if(alert) t.face=P.x>t.x?1:-1; else if(Math.abs(t.vx)>25) t.face=Math.sign(t.vx); const f=t.face||1;
+    const rot=clamp(-t.vx*0.0009,-0.35,0.35)+Math.sin(t.ph*1.9)*0.04 + (t.state==='dash'?0:0);
+    const W=t.r*4.6*(E.dscale||1), H=W*165/202, c=Math.cos(rot), s=Math.sin(rot);
+    const at=(u,v)=>{ const dx=(u-0.5)*W*f, dy=(0.42-v)*H; return [x+c*dx-s*dy, y+s*dx+c*dy]; };   // sprite fraction (u from left, v from top) -> world
+    const eyeCol=[lerp(0.35,E.col[0],alert?1:0),lerp(0.95,E.col[1],alert?1:0),lerp(1,E.col[2],alert?1:0)];
+    // downdraft haze under the rotors
+    const [hx,hy]=at(0.5,1.0); fx('jet2',hx,hy+6,0.22+0.03*Math.sin(t.ph*20),Math.PI,[0.45,0.8,1],0.14,true,false,0.5,1);
+    fx('orb_soft',x,y,(t.r/40)*(alert?1.3:1),0,eyeCol,alert?0.35:0.18,true);
     if(t.state==='dash') fx('ribbon',x,y,0.6,Math.atan2(t.vy,t.vx)+Math.PI,E.col,0.8,true,false,0.05,0.5);
-    R.circle(true,x,y,t.r,t.hit>0?col(1,1,1,1):col(0.16,0.18,0.22,1),24);
-    R.circle(false,x,y,t.r,col(cr*0.6,cg*0.6,cb*0.6,1),24);
-    const ea=alert?Math.atan2(P.y+85-y,P.x-x):0, eo=alert?t.r*0.28:0;
-    R.circle(true,x+Math.cos(ea)*eo,y+Math.sin(ea)*eo,t.r*0.45,t.hit>0?col(1,1,1,1):col(cr,cg*(0.8+0.2*pulse),cb,1),20);
-    if(t.type==='charger'){ R.triangle(true,x-t.r*0.9,y+t.r*0.5,x-t.r*0.3,y+t.r*0.9,x-t.r*1.3,y+t.r*1.4,col(0.35,0.38,0.45,1));
-      R.triangle(true,x+t.r*0.9,y+t.r*0.5,x+t.r*0.3,y+t.r*0.9,x+t.r*1.3,y+t.r*1.4,col(0.35,0.38,0.45,1)); }
-    else { R.rect(true,x-t.r-12,y-3,12,6,col(0.35,0.38,0.45,1)); R.rect(true,x+t.r,y-3,12,6,col(0.35,0.38,0.45,1)); }
-    if(t.type==='gunner') R.rect(true,x-4,y-t.r-10,8,11,col(0.35,0.38,0.45,1));
-    fx('orb_s',x+Math.cos(ea)*eo,y+Math.sin(ea)*eo,t.r/70,0,E.col,0.9,true);
-    for(let i=0;i<E.hp;i++) R.rect(true,x-E.hp*5.5+i*11,y+t.r+9,8,4,i<t.hp?col(0.3,1,0.8,1):col(0.3,0.3,0.3,1));
+    setBlend(false); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,WHITE,f<0,0.5,0.58);
+    if(t.hit>0){ setBlend(true); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,col(t.hit*9,t.hit*9,t.hit*9,1),f<0,0.5,0.58); }
+    // spinning rotor blur over both discs
+    for(const [u,v,ph] of [[0.22,0.12,0],[0.79,0.18,1.7]]){ const [rx,ry]=at(u,v), sp=t.ph*38+ph;
+      fx('ring1',rx,ry,W/330,rot,[0.8,0.95,1],0.22,true,false,0.5,0.5,1.0);
+      fx('streak',rx,ry,W/420,rot+(Math.sin(sp)>0?0:Math.PI),[0.85,0.95,1],0.35,true,false,0.5,0.5,Math.abs(Math.cos(sp))*0.9+0.1); }
+    // eye: steady glow, brightening while it winds up a shot / dash
+    const [ex,ey]=at(0.69,0.46), pulse=0.6+0.4*Math.sin(t.ph*6);
+    fx('orb_s',ex,ey,W/300*(1+0.25*pulse),0,eyeCol,alert?0.9:0.55,true);
+    if(charging){ fx('orb_m',ex,ey,0.35+k*0.9,0,E.col,0.4+0.6*k,true); fx('twinkle',ex,ey,0.25+k*0.5,k*3,E.col,k,true); }
+    for(let i=0;i<E.hp;i++) R.rect(true,x-E.hp*5.5+i*11,y-H*0.62,8,4,i<t.hp?col(0.3,1,0.8,1):col(0.3,0.3,0.3,1));
   }
   for(const b of ebolts){ fx('fireball',b.x,b.y,0.4,b.a,[1,0.5,0.18],1.3,true,true,0.85,0.5); fx('orb_s',b.x,b.y,0.6,0,[1,0.6,0.2],0.7,true); }
   // player
@@ -79,7 +86,9 @@ function draw(dt){
   R.drawSkeleton(sk,charAtlas.pages[0].pma); blend=-1;
   for(const b of bullets){ fx('streak',b.x,b.y,0.55,Math.atan2(b.vy,b.vx),[0.6,1,1],1.3,false,false,0.85,0.5); fx('orb_s',b.x,b.y,0.35,0,[0.5,1,1],0.9); }
   for(const p of parts){ if(p.x<x0-300||p.x>x1+300||p.y<y0-300||p.y>y1+300) continue;
-    const t=1-p.life/p.max, s=lerp(p.s0,p.s1,t), a=p.k*Math.pow(Math.max(0,p.life/p.max),0.6);
+    const t=1-p.life/p.max, s=lerp(p.s0,p.s1,t);
+    if(p.puff!==undefined){ puff(p.puff,p.x,p.y,s,p.rot,p.rgb,p.k*Math.min(1,t*7)*Math.pow(Math.max(0,1-t),1.4)); continue; }
+    const a=p.k*Math.pow(Math.max(0,p.life/p.max),0.6);
     fx(p.sp,p.x,p.y,s,p.rot,p.rgb,a,p.tint,p.flipX,p.px??0.5,p.py??0.5,p.sx??1); }
   // ambient embers & motes
   if(amb.length<160){ for(let i=0;i<2;i++){ const ember=Math.random()<0.6;

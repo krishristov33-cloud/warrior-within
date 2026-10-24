@@ -11,7 +11,7 @@ function setDifficulty(n){ DIFF_NAME=n; DIFF=DIFFS[n]; try{ localStorage.setItem
 const ENEMY = {
   target :{hp:3, r:26, sense:0,   col:[1,0.42,0.25]},
   gunner :{hp:4, r:28, sense:880, col:[1,0.6,0.15]},
-  charger:{hp:3, r:24, sense:740, col:[0.85,0.35,1]},
+  charger:{hp:3, r:24, sense:740, col:[0.85,0.35,1], dscale:1.1},
 };
 const targets = enemiesDef.map(([x,y,type],i)=>({type,x,y,bx:x,by:y,vx:0,vy:0,r:ENEMY[type].r,hp:ENEMY[type].hp,dead:0,ph:i*1.7,hit:0,state:'idle',t:0,cool:1+Math.random(),aggro:0}));
 const SPAWN = {x:checkpoints[0].x, y:checkpoints[0].y};
@@ -117,10 +117,13 @@ function respawn(){
 function part(o){ parts.push(Object.assign({x:0,y:0,vx:0,vy:0,rot:0,vr:0,life:0.5,s0:0.3,s1:0.3,rgb:[1,1,1],k:1,grav:0,drag:0,tint:false,align:false,flipX:false,fade:1},o,{max:o.life||0.5})); }
 function fxMuzzle(x,y,a){
   const fx_=x+Math.cos(a)*6, fy_=y+Math.sin(a)*6;
-  part({sp:'star4',x:fx_,y:fy_,rot:a+rnd(-0.3,0.3),life:0.045,s0:0.16,s1:0.1,rgb:[0.85,1,1],k:1.4});
-  part({sp:'streak',x:fx_,y:fy_,rot:a,life:0.04,s0:0.28,s1:0.2,rgb:[0.6,1,1],px:0.05,k:1.1});
-  part({sp:'orb_s',x:fx_,y:fy_,life:0.05,s0:0.45,s1:0.6,rgb:[0.35,0.85,1],k:0.5});
-  for(let i=0;i<2;i++){ const b=a+rnd(-0.35,0.35), v=rnd(350,650); part({sp:'dot',x:fx_,y:fy_,vx:Math.cos(b)*v,vy:Math.sin(b)*v,life:rnd(0.06,0.12),s0:0.16,s1:0.04,rgb:[0.7,1,1],drag:5}); }
+  // fiery flash: tinted flame tongue + hot core + embers, then a little gun smoke
+  part({sp:'muzzle',x:fx_,y:fy_,rot:a,life:0.05,s0:0.2,s1:0.28,rgb:[1,0.5,0.12],tint:true,flipX:true,px:0.04,k:1.7,sx:rnd(0.85,1.2)});
+  part({sp:'flame_m',x:fx_,y:fy_,rot:a-Math.PI/2+rnd(-0.15,0.15),life:0.055,s0:0.42,s1:0.3,rgb:[1,0.62,0.18],tint:true,py:0.12,k:1.5});
+  part({sp:'star4',x:fx_+Math.cos(a)*10,y:fy_+Math.sin(a)*10,rot:a+rnd(-0.3,0.3),life:0.045,s0:0.17,s1:0.1,rgb:[1,0.85,0.45],tint:true,k:1.5});
+  part({sp:'orb_s',x:fx_,y:fy_,life:0.06,s0:0.55,s1:0.75,rgb:[1,0.5,0.15],tint:true,k:0.8});
+  for(let i=0;i<3;i++){ const b=a+rnd(-0.45,0.45), v=rnd(300,700); part({sp:'dot',x:fx_,y:fy_,vx:Math.cos(b)*v,vy:Math.sin(b)*v,life:rnd(0.08,0.18),s0:0.15,s1:0.04,rgb:[1,rnd(0.45,0.75),0.15],tint:true,drag:5,grav:400}); }
+  if(Math.random()<0.6) part({puff:(Math.random()*PUFF_N)|0,x:fx_+Math.cos(a)*14,y:fy_+Math.sin(a)*14,vx:Math.cos(a)*rnd(60,120)+P.vx*0.4,vy:Math.sin(a)*rnd(60,120)+rnd(30,60),rot:rnd(0,6),vr:rnd(-1.5,1.5),life:rnd(0.45,0.7),s0:16,s1:46,rgb:[0.5,0.47,0.44],k:0.35,drag:3});
 }
 function fxImpact(x,y,a){
   part({sp:'burst_s',x,y,rot:a+Math.PI,life:0.12,s0:0.35,s1:0.55,rgb:[0.7,1,1],k:1.2});
@@ -136,11 +139,15 @@ function fxExplode(x,y,rgb=[0.45,1,0.95],sc=1){
   for(let i=0;i<4;i++) part({sp:pick(['smoke1','smoke2']),x:x+rnd(-30,30),y:y+rnd(-30,30),vx:rnd(-80,80),vy:rnd(40,140),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.6,1.1),s0:0.6*sc,s1:1.3*sc,rgb:[0.55,0.62,0.7],tint:true,k:0.45});
   shake=Math.min(shake+12*sc,18);
 }
+// dust/smoke clouds kicked up along the ground (normal-blended puffs, sandy grey)
+const DUST=[0.6,0.55,0.48];
 function fxLand(x,y,k=1){
-  part({sp:'splash',x,y:y+8,life:0.35,s0:0.7*k,s1:1.4*k,rgb:[0.75,0.8,0.85],tint:true,k:0.55});
-  for(let i=0;i<3;i++) part({sp:'smoke2',x:x+rnd(-40,40),y:y+12,vx:rnd(-160,160),vy:rnd(10,70),rot:rnd(0,6),life:rnd(0.4,0.7),s0:0.25*k,s1:0.6*k,rgb:[0.7,0.66,0.6],tint:true,k:0.35});
+  for(let i=0;i<8;i++){ const s=i%2?1:-1, sp=rnd(120,330)*k;
+    part({puff:(Math.random()*PUFF_N)|0,x:x+s*rnd(4,30)*k,y:y+rnd(4,14),vx:s*sp,vy:rnd(8,50),rot:rnd(0,6),vr:rnd(-1.2,1.2),life:rnd(0.55,0.95),s0:32*k,s1:rnd(75,110)*k,rgb:DUST,k:0.6,drag:3.2}); }
+  for(let i=0;i<3;i++) part({puff:(Math.random()*PUFF_N)|0,x:x+rnd(-20,20)*k,y:y+12,vx:rnd(-30,30),vy:rnd(40,90)*k,rot:rnd(0,6),vr:rnd(-0.8,0.8),life:rnd(0.7,1.1),s0:34*k,s1:95*k,rgb:DUST,k:0.32,drag:2});
+  for(let i=0;i<5;i++){ const s=Math.random()<0.5?-1:1; part({puff:(Math.random()*PUFF_N)|0,x,y:y+6,vx:s*rnd(80,260)*k,vy:rnd(160,320)*k,rot:0,life:rnd(0.35,0.55),s0:9,s1:6,rgb:[0.38,0.33,0.28],k:0.9,grav:1500}); }
 }
-function fxDust(x,y){ part({sp:'smoke2',x,y:y+10,vx:-P.vx*0.15+rnd(-30,30),vy:rnd(20,60),rot:rnd(0,6),life:0.45,s0:0.15,s1:0.4,rgb:[0.7,0.66,0.6],tint:true,k:0.3}); }
+function fxDust(x,y){ part({puff:(Math.random()*PUFF_N)|0,x,y:y+10,vx:-P.vx*0.15+rnd(-30,30),vy:rnd(15,45),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.45,0.65),s0:18,s1:48,rgb:DUST,k:0.32,drag:2}); }
 function fxHurt(x,y){ part({sp:'zap',x,y,rot:rnd(0,6),life:0.2,s0:0.6,s1:0.9,rgb:[1,0.3,0.25],tint:true,k:1.2}); part({sp:'star_b',x,y,life:0.12,s0:0.6,s1:0.9,rgb:[1,0.4,0.3],tint:true,k:1}); }
 function fxSpawn(x,y){ part({sp:'ripple',x,y:y+8,life:0.7,s0:0.6,s1:2.2,rgb:[0.4,1,1],k:1}); part({sp:'orb_big',x,y:y+90,life:0.5,s0:1,s1:2.4,rgb:[0.4,0.9,1],k:0.8}); part({sp:'sparks_up2',x,y:y+60,life:0.6,s0:0.9,s1:1.4,rgb:[0.5,1,1],k:1}); }
 function fxSparkle(x,y,big=false){

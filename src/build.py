@@ -6,7 +6,8 @@ spine=open(P('src','vendor','spine-webgl.min.js')).read()
 j=open(P('assets','character','warrior2.json')).read(); a=open(P('assets','character','warrior2.atlas')).read()
 b64=lambda p,m: f'data:{m};base64,'+base64.b64encode(open(p,'rb').read()).decode()
 imgs={'tiles':b64(P('assets','level','tiles.webp'),'image/webp'),'fx':b64(P('assets','level','fx.webp'),'image/webp'),
-      'fxg':b64(P('assets','level','fxg.webp'),'image/webp'),'plate':b64(P('assets','level','plate.webp'),'image/webp'),'refspr':b64(P('assets','level','refspr.webp'),'image/webp')}
+      'fxg':b64(P('assets','level','fxg.webp'),'image/webp'),'plate':b64(P('assets','level','plate.webp'),'image/webp'),'refspr':b64(P('assets','level','refspr.webp'),'image/webp'),
+      'drone':b64(P('assets','level','drone.webp'),'image/webp')}
 data=('const EMBED_JSON='+json.dumps(json.loads(j),separators=(',',':'))+';\nconst EMBED_ATLAS='+json.dumps(a)+
       ';\nconst EMBED_PNG="'+b64(P('assets','character','warrior2.png'),'image/png')+'";\nconst EMBED_IMG='+json.dumps(imgs)+
       ';\nconst LEVEL_ATLAS='+open(P('assets','level','atlas.json')).read()+';\nconst REF_SPR='+open(P('assets','level','refspr.json')).read()+';')
