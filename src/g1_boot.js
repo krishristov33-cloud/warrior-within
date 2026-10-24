@@ -51,9 +51,9 @@ const QV = new Float32Array(48), QI = [0,1,2,2,3,0];
 let blend = -1;
 function setBlend(add){ const b=add?1:0; if(blend===b) return; blend=b; R.enableRenderer(R.batcher);
   R.batcher.setBlendMode(add?spine.BlendMode.Additive:spine.BlendMode.Normal, add); }
-// premultiplied normal blend (smoke/dust puffs): pass colour already multiplied by alpha
-function setBlendPma(){ if(blend===2) return; blend=2; R.enableRenderer(R.batcher); R.batcher.setBlendMode(spine.BlendMode.Normal, true); }
-function puff(v,x,y,size,rot,rgb,a){ setBlendPma(); spr(TX.puff,[v/PUFF_N,0,(v+1)/PUFF_N,1],x,y,size,size,rot,col(rgb[0]*a,rgb[1]*a,rgb[2]*a,a),false); }
+// additive that respects the texture's alpha (sprite tints / hit flashes on non-premultiplied textures)
+function setBlendAddA(){ if(blend===2) return; blend=2; R.enableRenderer(R.batcher); R.batcher.setBlendMode(spine.BlendMode.Additive, false); }
+function puff(v,x,y,size,rot,rgb,a){ setBlend(false); spr(TX.puff,[v/PUFF_N,0,(v+1)/PUFF_N,1],x,y,size,size,rot,col(rgb[0],rgb[1],rgb[2],a),false); }
 // draw texture region uv=[u0,v0,u1,v1] with pivot (px,py) fractions (y-up), world size w,h
 function spr(tex, uv, x, y, w, h, rot, col, flipX, px=0.5, py=0.5){
   R.enableRenderer(R.batcher);

@@ -95,9 +95,9 @@ function update(dt){
   P.coyote = P.ground?0.09:Math.max(0,P.coyote-dt); P.buf=Math.max(0,P.buf-dt); P.drop=Math.max(0,P.drop-dt);
   if(P.buf>0){
     if(down && P.ground && P.gs && !lad){ P.drop=0.22; P.ground=false; P.gs=null; P.buf=0; P.vy=-120; }
-    else if(P.coyote>0){ P.vy=JUMP + (P.gs&&P.gs.vy>0?P.gs.vy*0.4:0); P.ground=false; P.gs=null; P.coyote=0; P.buf=0; P.dbl=false; fxLand(P.x,P.y,0.6); }
+    else if(P.coyote>0){ P.vy=JUMP + (P.gs&&P.gs.vy>0?P.gs.vy*0.4:0); P.ground=false; P.gs=null; P.coyote=0; P.buf=0; P.dbl=false; fxLand(P.x,P.y,0.8); }
     else if(!P.dbl && !jetBtn){ P.vy=Math.max(P.vy,DJUMP); P.dbl=true; P.buf=0; P.flip=0.55; play('double_jump',false);
-      part({sp:'ring2',x:P.x,y:P.y+10,life:0.35,s0:0.8,s1:1.6,rgb:[0.5,1,1],k:1}); part({sp:'sparks_up',x:P.x,y:P.y+30,life:0.4,s0:0.8,s1:1.2,rgb:[0.5,1,1],k:1}); }
+      fxAirKick(P.x,P.y+10); }
   }
   P.jet=false;
   if(jetBtn && P.fuel>0.001 && P.flip<=0){ P.jet=true; P.fuel=Math.max(0,P.fuel-FUEL_USE*dt); P.vy += JET*dt; P.vx += inX*JET_X*dt; P.ground=false; P.gs=null; }
@@ -175,9 +175,9 @@ function update(dt){
   for(const b of bullets){ b.life-=dt;
     for(let i=0;i<4&&b.life>0;i++){ const px=b.x, py=b.y; b.x+=b.vx*dt/4; b.y+=b.vy*dt/4;
       if(pointSolid(b.x,b.y) || floorHit(px,py,b.x,b.y)){ b.life=0; fxImpact(b.x,b.y,b.ang); break; }
-      for(const t of targets){ if(t.dead<=0 && Math.hypot(b.x-t.x,b.y-t.y)<t.r+6){ b.life=0; t.hp--; t.hit=0.08; t.aggro=2.5; t.vx+=b.vx*0.04; t.vy+=b.vy*0.04; if(t.state==='windup') t.t+=0.12;
-          part({sp:'star_b',x:b.x,y:b.y,rot:rnd(0,6),life:0.1,s0:0.35,s1:0.6,rgb:[0.7,1,1],k:1.2});
-          if(t.hp<=0){ t.dead=4; P.score++; fxExplode(t.x,t.y,ENEMY[t.type].col,1); } break; } }
+      for(const t of targets){ if(t.dead<=0 && Math.hypot(b.x-t.x,b.y-t.y)<t.r+6){ b.life=0; t.hp--; t.hit=0.16; t.aggro=2.5; t.vx+=b.vx*0.04; t.vy+=b.vy*0.04; if(t.state==='windup') t.t+=0.12;
+          fxImpact(b.x,b.y,b.ang);
+          if(t.hp<=0){ t.dead=4; P.score++; fxExplode(t.x,t.y,ENEMY[t.type].col,0.7); } break; } }
     }
   }
   for(let i=bullets.length-1;i>=0;i--) if(bullets[i].life<=0) bullets.splice(i,1);

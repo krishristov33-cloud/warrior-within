@@ -51,9 +51,9 @@ const QV = new Float32Array(48), QI = [0,1,2,2,3,0];
 let blend = -1;
 function setBlend(add){ const b=add?1:0; if(blend===b) return; blend=b; R.enableRenderer(R.batcher);
   R.batcher.setBlendMode(add?spine.BlendMode.Additive:spine.BlendMode.Normal, add); }
-// premultiplied normal blend (smoke/dust puffs): pass colour already multiplied by alpha
-function setBlendPma(){ if(blend===2) return; blend=2; R.enableRenderer(R.batcher); R.batcher.setBlendMode(spine.BlendMode.Normal, true); }
-function puff(v,x,y,size,rot,rgb,a){ setBlendPma(); spr(TX.puff,[v/PUFF_N,0,(v+1)/PUFF_N,1],x,y,size,size,rot,col(rgb[0]*a,rgb[1]*a,rgb[2]*a,a),false); }
+// additive that respects the texture's alpha (sprite tints / hit flashes on non-premultiplied textures)
+function setBlendAddA(){ if(blend===2) return; blend=2; R.enableRenderer(R.batcher); R.batcher.setBlendMode(spine.BlendMode.Additive, false); }
+function puff(v,x,y,size,rot,rgb,a){ setBlend(false); spr(TX.puff,[v/PUFF_N,0,(v+1)/PUFF_N,1],x,y,size,size,rot,col(rgb[0],rgb[1],rgb[2],a),false); }
 // draw texture region uv=[u0,v0,u1,v1] with pivot (px,py) fractions (y-up), world size w,h
 function spr(tex, uv, x, y, w, h, rot, col, flipX, px=0.5, py=0.5){
   R.enableRenderer(R.batcher);
@@ -243,9 +243,9 @@ let DIFF = DIFFS.normal, DIFF_NAME='normal';
 function setDifficulty(n){ DIFF_NAME=n; DIFF=DIFFS[n]; try{ localStorage.setItem('w2_diff',n); }catch(e){}
   document.querySelectorAll('[data-diff]').forEach(b=>b.classList.toggle('sel',b.dataset.diff===n)); const el=document.getElementById('diffTag'); if(el) el.textContent=DIFF.label; }
 const ENEMY = {
-  target :{hp:3, r:26, sense:0,   col:[1,0.42,0.25]},
-  gunner :{hp:4, r:28, sense:880, col:[1,0.6,0.15]},
-  charger:{hp:3, r:24, sense:740, col:[0.85,0.35,1], dscale:1.1},
+  target :{hp:3, r:19, sense:0,   col:[1,0.42,0.25]},
+  gunner :{hp:4, r:21, sense:880, col:[1,0.6,0.15]},
+  charger:{hp:3, r:18, sense:740, col:[0.85,0.35,1], dscale:1.1},
 };
 const targets = enemiesDef.map(([x,y,type],i)=>({type,x,y,bx:x,by:y,vx:0,vy:0,r:ENEMY[type].r,hp:ENEMY[type].hp,dead:0,ph:i*1.7,hit:0,state:'idle',t:0,cool:1+Math.random(),aggro:0}));
 const SPAWN = {x:checkpoints[0].x, y:checkpoints[0].y};
@@ -357,12 +357,14 @@ function fxMuzzle(x,y,a){
   part({sp:'star4',x:fx_+Math.cos(a)*10,y:fy_+Math.sin(a)*10,rot:a+rnd(-0.3,0.3),life:0.045,s0:0.17,s1:0.1,rgb:[1,0.85,0.45],tint:true,k:1.5});
   part({sp:'orb_s',x:fx_,y:fy_,life:0.06,s0:0.55,s1:0.75,rgb:[1,0.5,0.15],tint:true,k:0.8});
   for(let i=0;i<3;i++){ const b=a+rnd(-0.45,0.45), v=rnd(300,700); part({sp:'dot',x:fx_,y:fy_,vx:Math.cos(b)*v,vy:Math.sin(b)*v,life:rnd(0.08,0.18),s0:0.15,s1:0.04,rgb:[1,rnd(0.45,0.75),0.15],tint:true,drag:5,grav:400}); }
-  if(Math.random()<0.6) part({puff:(Math.random()*PUFF_N)|0,x:fx_+Math.cos(a)*14,y:fy_+Math.sin(a)*14,vx:Math.cos(a)*rnd(60,120)+P.vx*0.4,vy:Math.sin(a)*rnd(60,120)+rnd(30,60),rot:rnd(0,6),vr:rnd(-1.5,1.5),life:rnd(0.45,0.7),s0:16,s1:46,rgb:[0.5,0.47,0.44],k:0.35,drag:3});
+  if(Math.random()<0.6) part({puff:(Math.random()*PUFF_N)|0,x:fx_+Math.cos(a)*14,y:fy_+Math.sin(a)*14,vx:Math.cos(a)*rnd(60,120)+P.vx*0.4,vy:Math.sin(a)*rnd(60,120)+rnd(30,60),rot:rnd(0,6),vr:rnd(-1.5,1.5),life:rnd(0.45,0.7),s0:16,s1:46,rgb:[0.5,0.47,0.44],k:0.5,drag:3});
 }
 function fxImpact(x,y,a){
-  part({sp:'burst_s',x,y,rot:a+Math.PI,life:0.12,s0:0.35,s1:0.55,rgb:[0.7,1,1],k:1.2});
-  part({sp:'ring1',x,y,rot:a+Math.PI/2,life:0.25,s0:0.4,s1:1.0,rgb:[0.5,0.95,1],k:0.8});
-  for(let i=0;i<6;i++){ const b=a+Math.PI+rnd(-1.2,1.2), s=rnd(250,650); part({sp:'dot',x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.2,0.4),s0:0.3,s1:0.05,rgb:[0.7,1,1],grav:900,drag:1}); }
+  part({sp:'burst_s',x,y,rot:a+Math.PI,life:0.1,s0:0.32,s1:0.5,rgb:[1,0.55,0.15],tint:true,k:1.5});
+  part({sp:'orb_s',x,y,life:0.12,s0:0.5,s1:0.8,rgb:[1,0.45,0.1],tint:true,k:0.9});
+  part({sp:'star4',x,y,rot:rnd(0,6),life:0.06,s0:0.18,s1:0.1,rgb:[1,0.9,0.6],tint:true,k:1.4});
+  for(let i=0;i<6;i++){ const b=a+Math.PI+rnd(-1.2,1.2), s=rnd(250,650); part({sp:'dot',x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.2,0.4),s0:0.26,s1:0.04,rgb:[1,rnd(0.4,0.75),0.12],tint:true,grav:900,drag:1}); }
+  part({puff:(Math.random()*PUFF_N)|0,x,y,vx:-Math.cos(a)*40,vy:rnd(20,50),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.45,0.7),s0:14,s1:42,rgb:[0.42,0.39,0.36],k:0.55,drag:2});
 }
 function fxExplode(x,y,rgb=[0.45,1,0.95],sc=1){
   part({sp:'star_g',x,y,rot:rnd(0,6),life:0.22,s0:1.1*sc,s1:1.8*sc,rgb,tint:true,k:1.4});
@@ -377,11 +379,15 @@ function fxExplode(x,y,rgb=[0.45,1,0.95],sc=1){
 const DUST=[0.6,0.55,0.48];
 function fxLand(x,y,k=1){
   for(let i=0;i<8;i++){ const s=i%2?1:-1, sp=rnd(120,330)*k;
-    part({puff:(Math.random()*PUFF_N)|0,x:x+s*rnd(4,30)*k,y:y+rnd(4,14),vx:s*sp,vy:rnd(8,50),rot:rnd(0,6),vr:rnd(-1.2,1.2),life:rnd(0.55,0.95),s0:32*k,s1:rnd(75,110)*k,rgb:DUST,k:0.6,drag:3.2}); }
-  for(let i=0;i<3;i++) part({puff:(Math.random()*PUFF_N)|0,x:x+rnd(-20,20)*k,y:y+12,vx:rnd(-30,30),vy:rnd(40,90)*k,rot:rnd(0,6),vr:rnd(-0.8,0.8),life:rnd(0.7,1.1),s0:34*k,s1:95*k,rgb:DUST,k:0.32,drag:2});
+    part({puff:(Math.random()*PUFF_N)|0,x:x+s*rnd(4,30)*k,y:y+rnd(4,14),vx:s*sp,vy:rnd(8,50),rot:rnd(0,6),vr:rnd(-1.2,1.2),life:rnd(0.55,0.95),s0:32*k,s1:rnd(75,110)*k,rgb:DUST,k:0.9,drag:3.2}); }
+  for(let i=0;i<3;i++) part({puff:(Math.random()*PUFF_N)|0,x:x+rnd(-20,20)*k,y:y+12,vx:rnd(-30,30),vy:rnd(40,90)*k,rot:rnd(0,6),vr:rnd(-0.8,0.8),life:rnd(0.7,1.1),s0:34*k,s1:95*k,rgb:DUST,k:0.6,drag:2});
   for(let i=0;i<5;i++){ const s=Math.random()<0.5?-1:1; part({puff:(Math.random()*PUFF_N)|0,x,y:y+6,vx:s*rnd(80,260)*k,vy:rnd(160,320)*k,rot:0,life:rnd(0.35,0.55),s0:9,s1:6,rgb:[0.38,0.33,0.28],k:0.9,grav:1500}); }
 }
-function fxDust(x,y){ part({puff:(Math.random()*PUFF_N)|0,x,y:y+10,vx:-P.vx*0.15+rnd(-30,30),vy:rnd(15,45),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.45,0.65),s0:18,s1:48,rgb:DUST,k:0.32,drag:2}); }
+function fxAirKick(x,y){
+  for(let i=0;i<7;i++){ const b=-Math.PI/2+rnd(-1.1,1.1), s=rnd(140,300);
+    part({puff:(Math.random()*PUFF_N)|0,x:x+rnd(-12,12),y:y+rnd(0,12),vx:Math.cos(b)*s,vy:Math.sin(b)*s*0.6,rot:rnd(0,6),vr:rnd(-1.2,1.2),life:rnd(0.4,0.65),s0:22,s1:rnd(55,80),rgb:[0.62,0.58,0.52],k:0.75,drag:3.5}); }
+}
+function fxDust(x,y){ part({puff:(Math.random()*PUFF_N)|0,x,y:y+10,vx:-P.vx*0.15+rnd(-30,30),vy:rnd(15,45),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.45,0.65),s0:18,s1:48,rgb:DUST,k:0.55,drag:2}); }
 function fxHurt(x,y){ part({sp:'zap',x,y,rot:rnd(0,6),life:0.2,s0:0.6,s1:0.9,rgb:[1,0.3,0.25],tint:true,k:1.2}); part({sp:'star_b',x,y,life:0.12,s0:0.6,s1:0.9,rgb:[1,0.4,0.3],tint:true,k:1}); }
 function fxSpawn(x,y){ part({sp:'ripple',x,y:y+8,life:0.7,s0:0.6,s1:2.2,rgb:[0.4,1,1],k:1}); part({sp:'orb_big',x,y:y+90,life:0.5,s0:1,s1:2.4,rgb:[0.4,0.9,1],k:0.8}); part({sp:'sparks_up2',x,y:y+60,life:0.6,s0:0.9,s1:1.4,rgb:[0.5,1,1],k:1}); }
 function fxSparkle(x,y,big=false){
@@ -538,9 +544,9 @@ function update(dt){
   P.coyote = P.ground?0.09:Math.max(0,P.coyote-dt); P.buf=Math.max(0,P.buf-dt); P.drop=Math.max(0,P.drop-dt);
   if(P.buf>0){
     if(down && P.ground && P.gs && !lad){ P.drop=0.22; P.ground=false; P.gs=null; P.buf=0; P.vy=-120; }
-    else if(P.coyote>0){ P.vy=JUMP + (P.gs&&P.gs.vy>0?P.gs.vy*0.4:0); P.ground=false; P.gs=null; P.coyote=0; P.buf=0; P.dbl=false; fxLand(P.x,P.y,0.6); }
+    else if(P.coyote>0){ P.vy=JUMP + (P.gs&&P.gs.vy>0?P.gs.vy*0.4:0); P.ground=false; P.gs=null; P.coyote=0; P.buf=0; P.dbl=false; fxLand(P.x,P.y,0.8); }
     else if(!P.dbl && !jetBtn){ P.vy=Math.max(P.vy,DJUMP); P.dbl=true; P.buf=0; P.flip=0.55; play('double_jump',false);
-      part({sp:'ring2',x:P.x,y:P.y+10,life:0.35,s0:0.8,s1:1.6,rgb:[0.5,1,1],k:1}); part({sp:'sparks_up',x:P.x,y:P.y+30,life:0.4,s0:0.8,s1:1.2,rgb:[0.5,1,1],k:1}); }
+      fxAirKick(P.x,P.y+10); }
   }
   P.jet=false;
   if(jetBtn && P.fuel>0.001 && P.flip<=0){ P.jet=true; P.fuel=Math.max(0,P.fuel-FUEL_USE*dt); P.vy += JET*dt; P.vx += inX*JET_X*dt; P.ground=false; P.gs=null; }
@@ -618,9 +624,9 @@ function update(dt){
   for(const b of bullets){ b.life-=dt;
     for(let i=0;i<4&&b.life>0;i++){ const px=b.x, py=b.y; b.x+=b.vx*dt/4; b.y+=b.vy*dt/4;
       if(pointSolid(b.x,b.y) || floorHit(px,py,b.x,b.y)){ b.life=0; fxImpact(b.x,b.y,b.ang); break; }
-      for(const t of targets){ if(t.dead<=0 && Math.hypot(b.x-t.x,b.y-t.y)<t.r+6){ b.life=0; t.hp--; t.hit=0.08; t.aggro=2.5; t.vx+=b.vx*0.04; t.vy+=b.vy*0.04; if(t.state==='windup') t.t+=0.12;
-          part({sp:'star_b',x:b.x,y:b.y,rot:rnd(0,6),life:0.1,s0:0.35,s1:0.6,rgb:[0.7,1,1],k:1.2});
-          if(t.hp<=0){ t.dead=4; P.score++; fxExplode(t.x,t.y,ENEMY[t.type].col,1); } break; } }
+      for(const t of targets){ if(t.dead<=0 && Math.hypot(b.x-t.x,b.y-t.y)<t.r+6){ b.life=0; t.hp--; t.hit=0.16; t.aggro=2.5; t.vx+=b.vx*0.04; t.vy+=b.vy*0.04; if(t.state==='windup') t.t+=0.12;
+          fxImpact(b.x,b.y,b.ang);
+          if(t.hp<=0){ t.dead=4; P.score++; fxExplode(t.x,t.y,ENEMY[t.type].col,0.7); } break; } }
     }
   }
   for(let i=bullets.length-1;i>=0;i--) if(bullets[i].life<=0) bullets.splice(i,1);
@@ -710,15 +716,17 @@ function draw(dt){
     // face the player when alert, else the way it drifts
     if(alert) t.face=P.x>t.x?1:-1; else if(Math.abs(t.vx)>25) t.face=Math.sign(t.vx); const f=t.face||1;
     const rot=clamp(-t.vx*0.0009,-0.35,0.35)+Math.sin(t.ph*1.9)*0.04 + (t.state==='dash'?0:0);
-    const W=t.r*4.6*(E.dscale||1), H=W*165/202, c=Math.cos(rot), s=Math.sin(rot);
+    const W=t.r*3.1*(E.dscale||1), H=W*165/202, zs=W/130, c=Math.cos(rot), s=Math.sin(rot);
     const at=(u,v)=>{ const dx=(u-0.5)*W*f, dy=(0.42-v)*H; return [x+c*dx-s*dy, y+s*dx+c*dy]; };   // sprite fraction (u from left, v from top) -> world
     const eyeCol=[lerp(0.35,E.col[0],alert?1:0),lerp(0.95,E.col[1],alert?1:0),lerp(1,E.col[2],alert?1:0)];
     // downdraft haze under the rotors
-    const [hx,hy]=at(0.5,1.0); fx('jet2',hx,hy+6,0.22+0.03*Math.sin(t.ph*20),Math.PI,[0.45,0.8,1],0.14,true,false,0.5,1);
+    const [hx,hy]=at(0.5,1.0); fx('jet2',hx,hy+4,(0.22+0.03*Math.sin(t.ph*20))*zs,Math.PI,[0.45,0.8,1],0.14,true,false,0.5,1);
     fx('orb_soft',x,y,(t.r/40)*(alert?1.3:1),0,eyeCol,alert?0.35:0.18,true);
-    if(t.state==='dash') fx('ribbon',x,y,0.6,Math.atan2(t.vy,t.vx)+Math.PI,E.col,0.8,true,false,0.05,0.5);
-    setBlend(false); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,WHITE,f<0,0.5,0.58);
-    if(t.hit>0){ setBlend(true); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,col(t.hit*9,t.hit*9,t.hit*9,1),f<0,0.5,0.58); }
+    if(t.state==='dash') fx('ribbon',x,y,0.6*zs,Math.atan2(t.vy,t.vx)+Math.PI,E.col,0.8,true,false,0.05,0.5);
+    // hit: tint the body red (darken green/blue, then add a red glow masked by the sprite's alpha)
+    const hk=t.hit>0?Math.min(1,t.hit/0.08):0;
+    setBlend(false); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,hk?col(1,1-0.6*hk,1-0.65*hk,1):WHITE,f<0,0.5,0.58);
+    if(hk){ setBlendAddA(); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,col(0.75*hk,0.08*hk,0.04*hk,1),f<0,0.5,0.58); }
     // spinning rotor blur over both discs
     for(const [u,v,ph] of [[0.22,0.12,0],[0.79,0.18,1.7]]){ const [rx,ry]=at(u,v), sp=t.ph*38+ph;
       fx('ring1',rx,ry,W/330,rot,[0.8,0.95,1],0.22,true,false,0.5,0.5,1.0);
@@ -726,14 +734,14 @@ function draw(dt){
     // eye: steady glow, brightening while it winds up a shot / dash
     const [ex,ey]=at(0.69,0.46), pulse=0.6+0.4*Math.sin(t.ph*6);
     fx('orb_s',ex,ey,W/300*(1+0.25*pulse),0,eyeCol,alert?0.9:0.55,true);
-    if(charging){ fx('orb_m',ex,ey,0.35+k*0.9,0,E.col,0.4+0.6*k,true); fx('twinkle',ex,ey,0.25+k*0.5,k*3,E.col,k,true); }
-    for(let i=0;i<E.hp;i++) R.rect(true,x-E.hp*5.5+i*11,y-H*0.62,8,4,i<t.hp?col(0.3,1,0.8,1):col(0.3,0.3,0.3,1));
+    if(charging){ fx('orb_m',ex,ey,(0.35+k*0.9)*zs,0,E.col,0.4+0.6*k,true); fx('twinkle',ex,ey,(0.25+k*0.5)*zs,k*3,E.col,k,true); }
+    for(let i=0;i<E.hp;i++) R.rect(true,x-E.hp*4.5+i*9,y-H*0.62-4,7,3,i<t.hp?col(0.3,1,0.8,1):col(0.3,0.3,0.3,1));
   }
   for(const b of ebolts){ fx('fireball',b.x,b.y,0.4,b.a,[1,0.5,0.18],1.3,true,true,0.85,0.5); fx('orb_s',b.x,b.y,0.6,0,[1,0.6,0.2],0.7,true); }
   // player
   sk.color.a = (P.inv>0 && P.dead<=0) ? (Math.floor(performance.now()/70)%2?0.35:1) : 1;
   R.drawSkeleton(sk,charAtlas.pages[0].pma); blend=-1;
-  for(const b of bullets){ fx('streak',b.x,b.y,0.55,Math.atan2(b.vy,b.vx),[0.6,1,1],1.3,false,false,0.85,0.5); fx('orb_s',b.x,b.y,0.35,0,[0.5,1,1],0.9); }
+  for(const b of bullets){ const ba=Math.atan2(b.vy,b.vx); fx('streak',b.x,b.y,0.6,ba,[1,0.45,0.1],1.4,true,false,0.85,0.5); fx('streak',b.x,b.y,0.4,ba,[1,0.9,0.6],1.2,true,false,0.85,0.5,0.5); fx('orb_s',b.x,b.y,0.32,0,[1,0.6,0.2],1,true); }
   for(const p of parts){ if(p.x<x0-300||p.x>x1+300||p.y<y0-300||p.y>y1+300) continue;
     const t=1-p.life/p.max, s=lerp(p.s0,p.s1,t);
     if(p.puff!==undefined){ puff(p.puff,p.x,p.y,s,p.rot,p.rgb,p.k*Math.min(1,t*7)*Math.pow(Math.max(0,1-t),1.4)); continue; }
