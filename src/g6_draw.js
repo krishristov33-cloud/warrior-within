@@ -66,7 +66,7 @@ function draw(dt){
     const eyeCol=[lerp(0.35,E.col[0],alert?1:0),lerp(0.95,E.col[1],alert?1:0),lerp(1,E.col[2],alert?1:0)];
     // downdraft haze under the rotors
     const [hx,hy]=at(0.5,1.0); fx('jet2',hx,hy+4,(0.22+0.03*Math.sin(t.ph*20))*zs,Math.PI,[0.45,0.8,1],0.14,true,false,0.5,1);
-    fx('orb_soft',x,y,(t.r/40)*(alert?1.3:1),0,eyeCol,alert?0.35:0.18,true);
+    fx('orb_soft',x,y,(t.r/40)*(alert?0.75:0.6),0,eyeCol,alert?0.3:0.16,true);
     if(t.state==='dash') fx('ribbon',x,y,0.6*zs,Math.atan2(t.vy,t.vx)+Math.PI,E.col,0.8,true,false,0.05,0.5);
     // hit: tint the body red (darken green/blue, then add a red glow masked by the sprite's alpha)
     const hk=t.hit>0?Math.min(1,t.hit/0.08):0;
@@ -82,13 +82,15 @@ function draw(dt){
     if(charging){ fx('orb_m',ex,ey,(0.35+k*0.9)*zs,0,E.col,0.4+0.6*k,true); fx('twinkle',ex,ey,(0.25+k*0.5)*zs,k*3,E.col,k,true); }
     for(let i=0;i<E.hp;i++) R.rect(true,x-E.hp*4.5+i*9,y-H*0.62-4,7,3,i<t.hp?col(0.3,1,0.8,1):col(0.3,0.3,0.3,1));
   }
-  for(const b of ebolts){ fx('fireball',b.x,b.y,0.4,b.a,[1,0.5,0.18],1.3,true,true,0.85,0.5); fx('orb_s',b.x,b.y,0.6,0,[1,0.6,0.2],0.7,true); }
+  for(const b of ebolts){ fx('fireball',b.x,b.y,0.12,b.a,[1,0.5,0.18],1.3,true,true,0.85,0.5); fx('orb_s',b.x,b.y,0.18,0,[1,0.6,0.2],0.75,true); }
   // player
   sk.color.a = (P.inv>0 && P.dead<=0) ? (Math.floor(performance.now()/70)%2?0.35:1) : 1;
   R.drawSkeleton(sk,charAtlas.pages[0].pma); blend=-1;
-  for(const b of bullets){ const ba=Math.atan2(b.vy,b.vx); fx('streak',b.x,b.y,0.6,ba,[1,0.45,0.1],1.4,true,false,0.85,0.5); fx('streak',b.x,b.y,0.4,ba,[1,0.9,0.6],1.2,true,false,0.85,0.5,0.5); fx('orb_s',b.x,b.y,0.32,0,[1,0.6,0.2],1,true); }
+  for(const b of bullets){ const ba=Math.atan2(b.vy,b.vx), Lt=Math.min(170,(0.8-b.life)*3000+40);   // rifle tracer: long thin streak, hot head
+    gshape(0,b.x,b.y,Lt,9,ba,[1,0.5,0.12],0.9,1); gshape(0,b.x,b.y,Lt*0.6,3.5,ba,[1,0.92,0.7],1,1); fx('orb_s',b.x,b.y,0.12,0,[1,0.7,0.3],0.9,true); }
   for(const p of parts){ if(p.x<x0-300||p.x>x1+300||p.y<y0-300||p.y>y1+300) continue;
     const t=1-p.life/p.max, s=lerp(p.s0,p.s1,t);
+    if(p.gs!==undefined){ const r=p.line?Math.atan2(p.vy,p.vx):p.rot; gshape(p.gs,p.x,p.y,s,p.w,r,p.rgb,p.k*Math.max(0,p.life/p.max),p.px??0.5); continue; }
     if(p.puff!==undefined){ puff(p.puff,p.x,p.y,s,p.rot,p.rgb,p.k*Math.min(1,t*7)*Math.pow(Math.max(0,1-t),1.4)); continue; }
     const a=p.k*Math.pow(Math.max(0,p.life/p.max),0.6);
     fx(p.sp,p.x,p.y,s,p.rot,p.rgb,a,p.tint,p.flipX,p.px??0.5,p.py??0.5,p.sx??1); }

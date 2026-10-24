@@ -116,20 +116,20 @@ function respawn(){
 // ---------- particles ----------
 function part(o){ parts.push(Object.assign({x:0,y:0,vx:0,vy:0,rot:0,vr:0,life:0.5,s0:0.3,s1:0.3,rgb:[1,1,1],k:1,grav:0,drag:0,tint:false,align:false,flipX:false,fade:1},o,{max:o.life||0.5})); }
 function fxMuzzle(x,y,a){
-  const fx_=x+Math.cos(a)*6, fy_=y+Math.sin(a)*6;
-  // fiery flash: tinted flame tongue + hot core + embers, then a little gun smoke
-  part({sp:'muzzle',x:fx_,y:fy_,rot:a,life:0.05,s0:0.2,s1:0.28,rgb:[1,0.5,0.12],tint:true,flipX:true,px:0.04,k:1.7,sx:rnd(0.85,1.2)});
-  part({sp:'flame_m',x:fx_,y:fy_,rot:a-Math.PI/2+rnd(-0.15,0.15),life:0.055,s0:0.42,s1:0.3,rgb:[1,0.62,0.18],tint:true,py:0.12,k:1.5});
-  part({sp:'star4',x:fx_+Math.cos(a)*10,y:fy_+Math.sin(a)*10,rot:a+rnd(-0.3,0.3),life:0.045,s0:0.17,s1:0.1,rgb:[1,0.85,0.45],tint:true,k:1.5});
-  part({sp:'orb_s',x:fx_,y:fy_,life:0.06,s0:0.55,s1:0.75,rgb:[1,0.5,0.15],tint:true,k:0.8});
-  for(let i=0;i<3;i++){ const b=a+rnd(-0.45,0.45), v=rnd(300,700); part({sp:'dot',x:fx_,y:fy_,vx:Math.cos(b)*v,vy:Math.sin(b)*v,life:rnd(0.08,0.18),s0:0.15,s1:0.04,rgb:[1,rnd(0.45,0.75),0.15],tint:true,drag:5,grav:400}); }
+  const fx_=x-Math.cos(a)*20, fy_=y-Math.sin(a)*20, L=rnd(0.8,1.2);   // muzzle bone sits ~20u past the barrel tip
+  // rifle flash: hot core, long forward spike, two short side prongs (randomised per shot), embers + gun smoke
+  part({gs:1,x:fx_,y:fy_,rot:a,life:0.05,s0:62*L,s1:48*L,w:15,px:0.02,rgb:[1,0.62,0.2],k:1});
+  part({gs:1,x:fx_,y:fy_,rot:a,life:0.04,s0:38*L,s1:30*L,w:7,px:0.02,rgb:[1,0.95,0.75],k:1});
+  for(const s of [-1,1]){ const r=a+s*rnd(0.6,0.8); part({gs:1,x:fx_+Math.cos(a)*6,y:fy_+Math.sin(a)*6,rot:r,life:0.04,s0:rnd(16,24),s1:12,w:6,px:0.02,rgb:[1,0.6,0.18],k:0.9}); }
+  part({sp:'orb_s',x:fx_+Math.cos(a)*8,y:fy_+Math.sin(a)*8,life:0.05,s0:0.3,s1:0.42,rgb:[1,0.55,0.15],tint:true,k:1});
+  for(let i=0;i<2;i++){ const b=a+rnd(-0.5,0.5), v=rnd(350,700); part({gs:0,x:fx_,y:fy_,vx:Math.cos(b)*v,vy:Math.sin(b)*v,life:rnd(0.07,0.14),s0:14,s1:6,w:2.5,px:1,rgb:[1,rnd(0.55,0.8),0.2],k:1,drag:4,line:1}); }
   if(Math.random()<0.6) part({puff:(Math.random()*PUFF_N)|0,x:fx_+Math.cos(a)*14,y:fy_+Math.sin(a)*14,vx:Math.cos(a)*rnd(60,120)+P.vx*0.4,vy:Math.sin(a)*rnd(60,120)+rnd(30,60),rot:rnd(0,6),vr:rnd(-1.5,1.5),life:rnd(0.45,0.7),s0:16,s1:46,rgb:[0.5,0.47,0.44],k:0.5,drag:3});
 }
 function fxImpact(x,y,a){
-  part({sp:'burst_s',x,y,rot:a+Math.PI,life:0.1,s0:0.32,s1:0.5,rgb:[1,0.55,0.15],tint:true,k:1.5});
-  part({sp:'orb_s',x,y,life:0.12,s0:0.5,s1:0.8,rgb:[1,0.45,0.1],tint:true,k:0.9});
-  part({sp:'star4',x,y,rot:rnd(0,6),life:0.06,s0:0.18,s1:0.1,rgb:[1,0.9,0.6],tint:true,k:1.4});
-  for(let i=0;i<6;i++){ const b=a+Math.PI+rnd(-1.2,1.2), s=rnd(250,650); part({sp:'dot',x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.2,0.4),s0:0.26,s1:0.04,rgb:[1,rnd(0.4,0.75),0.12],tint:true,grav:900,drag:1}); }
+  // bullet strike: small hot flash + streaking sparks ricocheting back + a dust puff
+  part({sp:'orb_s',x,y,life:0.08,s0:0.32,s1:0.5,rgb:[1,0.55,0.15],tint:true,k:1});
+  part({sp:'star4',x,y,rot:rnd(0,6),life:0.05,s0:0.13,s1:0.08,rgb:[1,0.9,0.6],tint:true,k:1.3});
+  for(let i=0;i<7;i++){ const b=a+Math.PI+rnd(-1.1,1.1), s=rnd(350,900); part({gs:0,x,y,vx:Math.cos(b)*s,vy:Math.sin(b)*s,life:rnd(0.12,0.28),s0:rnd(14,26),s1:4,w:2.5,px:1,rgb:[1,rnd(0.5,0.85),0.2],k:1,grav:1200,drag:2,line:1}); }
   part({puff:(Math.random()*PUFF_N)|0,x,y,vx:-Math.cos(a)*40,vy:rnd(20,50),rot:rnd(0,6),vr:rnd(-1,1),life:rnd(0.45,0.7),s0:14,s1:42,rgb:[0.42,0.39,0.36],k:0.55,drag:2});
 }
 function fxExplode(x,y,rgb=[0.45,1,0.95],sc=1){
@@ -191,7 +191,7 @@ function updateEnemies(dt){
       if(t.state==='charge'){ t.t-=dt; if(t.t<=0){ t.state='idle'; t.cool=(1.4+Math.random()*0.7)*DIFF.cool;
           const lead=0.25, tx=px+P.vx*lead, ty=py+P.vy*lead*0.5, a=Math.atan2(ty-t.y,tx-t.x), sp=850*DIFF.bolt;
           ebolts.push({x:t.x,y:t.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:2.4,dmg:10,a});
-          part({sp:'star_b',x:t.x,y:t.y,life:0.12,s0:0.5,s1:0.8,rgb:E.col,tint:true,k:1.2}); } }
+          part({sp:'star_b',x:t.x,y:t.y,life:0.1,s0:0.14,s1:0.22,rgb:E.col,tint:true,k:1.1}); } }
     } else if(t.type==='charger' && (t.aggro>0 || t.state!=='idle')){
       t.cool-=dt;
       if(t.state==='idle'){ ax=(px-t.x)*1.6; ay=(py+60-t.y)*1.6; if(sees && d<540 && t.cool<=0){ t.state='windup'; t.t=0.55*DIFF.windup; } }
@@ -209,6 +209,6 @@ function updateEnemies(dt){
   for(const b of ebolts){ b.life-=dt; for(let i=0;i<3&&b.life>0;i++){ b.x+=b.vx*dt/3; b.y+=b.vy*dt/3;
       if(pointSolid(b.x,b.y)){ b.life=0; part({sp:'burst_s',x:b.x,y:b.y,rot:b.a+Math.PI,life:0.15,s0:0.4,s1:0.7,rgb:[1,0.55,0.2],tint:true,k:1.2}); }
       else if(P.dead<=0 && Math.abs(b.x-P.x)<P.w/2+8 && b.y>P.y && b.y<P.y+P.h){ b.life=0; hurtPlayer(b.dmg,b.x-b.vx,220); } }
-    if(Math.random()<0.6) part({sp:'dot',x:b.x,y:b.y,vx:rnd(-40,40),vy:rnd(-40,40),life:0.3,s0:0.35,s1:0.05,rgb:[1,0.55,0.2],tint:true}); }
+    if(Math.random()<0.6) part({sp:'dot',x:b.x,y:b.y,vx:rnd(-30,30),vy:rnd(-30,30),life:0.25,s0:0.18,s1:0.03,rgb:[1,0.55,0.2],tint:true}); }
   for(let i=ebolts.length-1;i>=0;i--) if(ebolts[i].life<=0) ebolts.splice(i,1);
 }
