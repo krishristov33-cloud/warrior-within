@@ -11,7 +11,7 @@ function upperOnly(name, keepGun=true, allSlots=false){
                                    || (allSlots && t.slotIndex!==undefined && t.slotIndex!==FLASH_SLOT));
   data.animations.push(new spine.Animation(name+'_upper', tl, a.duration));
 }
-upperOnly('shoot', false); upperOnly('reload'); upperOnly('hurt', false, true); upperOnly('aim_up'); upperOnly('shoot_down');
+upperOnly('shoot', false); upperOnly('reload'); upperOnly('hurt', false, true); upperOnly('aim_up'); upperOnly('shoot_down'); upperOnly('throw');
 const sk = new spine.Skeleton(data);
 const sd = new spine.AnimationStateData(data); sd.defaultMix = 0.12;
 [['jump_rise','fall',0.25],['fall','land',0.04],['land','idle_aim',0.2],['land','run',0.1],['idle_aim','run',0.1],
@@ -27,6 +27,7 @@ const BOOTS=[]; { sk.setToSetupPose(); sk.updateWorldTransform(spine.Physics.upd
     if(sole.length&&up.length) BOOTS.push({slot,at,buf,sole,up}); } }
 const bHip=B('hip'), bChest=B('chest'), bHead=B('head'), bGun=B('gun'), bMuzzle=B('muzzle');
 const flashSlot = sk.slots[FLASH_SLOT];
+const bThrowHand = B('ik_hand_l');
 // aim poses authored in Spine (upper body only): blended in by aim angle, then the gun is set to the exact angle.
 // AIM_*_ANG = muzzle world angle (deg) each pose was authored at, measured on top of idle_aim.
 const AIM_UP=data.findAnimation('aim_up_upper'), AIM_DN=data.findAnimation('shoot_down_upper');

@@ -85,6 +85,12 @@ function draw(dt){
     if(sp>=1) for(let i=0;i<E.hp;i++) R.rect(true,x-E.hp*4.5+i*9,y-H*0.62-4,7,3,i<t.hp?col(0.3,1,0.8,1):col(0.3,0.3,0.3,1));
   }
   for(const b of ebolts){ fx('fireball',b.x,b.y,0.12,b.a,[1,0.5,0.18],1.3,true,true,0.85,0.5); fx('orb_s',b.x,b.y,0.18,0,[1,0.6,0.2],0.75,true); }
+  // grenade supply crates (normal / hard) + live grenades
+  if(!DIFF.infNades) for(const n of nadePacks){ if(n.taken||n.x<x0-100||n.x>x1+100) continue; const bob=Math.sin(n.ph*2)*5;
+    fx('orb_soft',n.x,n.y+bob,0.45,0,[1,0.6,0.2],0.35,true);
+    setBlend(false); spr(TX.nade,[0,0,1,1],n.x-8,n.y+bob,18,24,0.25,WHITE,false); spr(TX.nade,[0,0,1,1],n.x+8,n.y+bob,18,24,-0.2,WHITE,true); }
+  for(const g of nades){ setBlend(false); spr(TX.nade,[0,0,1,1],g.x,g.y+9,15,20,g.rot,WHITE,false);
+    if(Math.sin((1.6-g.fuse)*(8+(1.6-g.fuse)*14))>0) fx('orb_s',g.x,g.y+9,0.16,0,[1,0.25,0.1],1.2,true); }
   // player
   sk.color.a = (P.inv>0 && P.dead<=0) ? (Math.floor(performance.now()/70)%2?0.35:1) : 1;
   R.drawSkeleton(sk,charAtlas.pages[0].pma); blend=-1;

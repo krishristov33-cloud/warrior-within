@@ -33,6 +33,10 @@ function updateWorld(dt){
   // secrets
   for(const s of secrets){ const inside = P.x>s.x && P.x<s.x+s.w && P.y+40>s.y && P.y<s.y+s.h+40;
     if(inside && !s.found){ s.found=true; P.secrets++; toast('✦ Secret area discovered'); fxSparkle(P.x,P.y+120*HERO,true); } }
+  // grenade supply crates (normal / hard)
+  if(!DIFF.infNades) for(const n of nadePacks){ if(n.taken) continue; n.ph+=dt;
+    if(Math.hypot(P.x-n.x,P.y+60*HERO-n.y)<70 && P.dead<=0){ n.taken=true; P.nades=Math.min(9,P.nades+2); toast('+2 grenades',1.4); fxSparkle(n.x,n.y); } }
+  updateNades(dt);
   // crystals
   for(const c of crystals){ if(c.taken) continue; c.ph+=dt;
     const dx=P.x-c.x, dy=P.y+80*HERO-c.y, d=Math.hypot(dx,dy);
@@ -118,7 +122,8 @@ function update(dt){
   P.flip=Math.max(0,P.flip-dt); P.land=Math.max(0,P.land-dt); P.cool=Math.max(0,P.cool-dt);
   P.recoil=Math.max(0,P.recoil-dt*9); P.flash=Math.max(0,P.flash-dt);
   if(P.reload>0){ P.reload-=dt; if(P.reload<=0){P.reload=0;P.ammo=30;} }
-  if(M.l && alive && P.cool<=0 && P.ammo>0 && P.reload<=0 && P.flip<=0) fire();
+  if(P.throwT>0){ P.throwT-=dt; if(!P.thrown && THROW_T-P.throwT>=THROW_REL){ P.thrown=true; if(alive) releaseNade(); } }
+  if(M.l && alive && P.cool<=0 && P.ammo>0 && P.reload<=0 && P.flip<=0 && P.throwT<=0) fire();
   P.inv=Math.max(0,P.inv-dt); P.hurtFlash=Math.max(0,P.hurtFlash-dt*2.5);
   if(alive){ P.regenT-=dt; if(P.regenT<=0 && P.hp<100) P.hp=Math.min(100,P.hp+DIFF.regen*dt); }
   else if(P.dead>0){ P.dead-=dt; if(P.dead<=0) respawn(); }
@@ -144,7 +149,7 @@ function update(dt){
   const piv={x:bGun.worldX||P.x, y:bGun.worldY||P.y+90*HERO};
   let dx=(M.wx-piv.x)*P.face, dy=M.wy-piv.y;
   let th=Math.atan2(dy,Math.max(dx,4))*180/Math.PI; th=clamp(th,-78,82);
-  const lock = P.flip>0 || P.reload>0 || P.dead>0 || P.done;
+  const lock = P.flip>0 || P.reload>0 || P.throwT>0 || P.dead>0 || P.done;
   if(!lock){
     const up=th>0?clamp(th/AIM_UP_ANG,0,1):0, dn=th<0?clamp(th/AIM_DN_ANG,0,1):0;
     if(up>0) AIM_UP.apply(sk,0,0,false,null,up,spine.MixBlend.replace,spine.MixDirection.mixIn);
@@ -201,7 +206,7 @@ function update(dt){
 
   hud('fuel').style.width=(P.fuel*100)+'%'; hud('fuel').classList.toggle('low',P.fuel<0.2);
   hud('hp').style.width=P.hp+'%'; hud('hp').classList.toggle('low',P.hp<30);
-  hud('ammo').textContent = P.reload>0 ? 'RELOAD' : P.ammo;
+  hud('ammo').textContent = DIFF.infAmmo ? '∞' : P.reload>0 ? 'RELOAD' : P.ammo; hud('nades').textContent = DIFF.infNades ? '∞' : P.nades;
   hud('gems').textContent = P.gems; hud('treas').textContent = `${P.treasures}/${chests.length}`; hud('kills').textContent=P.score;
   hud('vign').style.opacity=Math.max(P.hurtFlash*0.9, P.hp<30&&P.dead<=0?0.25+0.15*Math.sin(performance.now()/180):0, P.dead>0?0.6:0);
   hud('dead').style.display=P.dead>0?'grid':'none';

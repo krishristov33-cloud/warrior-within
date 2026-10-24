@@ -44,13 +44,21 @@ const imgRing=(()=>{ const S=128, c=document.createElement('canvas'); c.width=c.
   for(let y=0;y<S;y++) for(let x=0;x<S;x++){ const r=Math.hypot(x-S/2+0.5,y-S/2+0.5)/(S/2), a=Math.exp(-Math.pow((r-0.82)/0.07,2))+0.25*Math.exp(-Math.pow((r-0.82)/0.2,2));
     const k=(y*S+x)*4; im.data[k]=im.data[k+1]=im.data[k+2]=255; im.data[k+3]=Math.min(1,a)*255; }
   g.putImageData(im,0,0); return c; })();
+const imgNade=(()=>{ const c=document.createElement('canvas'); c.width=48; c.height=64; const g=c.getContext('2d');   // placeholder grenade art
+  g.fillStyle='#3d4a2c'; g.beginPath(); g.ellipse(24,40,16,20,0,0,6.29); g.fill();
+  g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=2; for(const y of [32,42,52]){ g.beginPath(); g.moveTo(9,y); g.lineTo(39,y); g.stroke(); } g.beginPath(); g.moveTo(24,21); g.lineTo(24,60); g.stroke();
+  const hl=g.createRadialGradient(17,32,1,17,32,13); hl.addColorStop(0,'rgba(220,240,180,.55)'); hl.addColorStop(1,'rgba(220,240,180,0)'); g.fillStyle=hl; g.beginPath(); g.ellipse(24,40,16,20,0,0,6.29); g.fill();
+  g.fillStyle='#8b8f94'; g.fillRect(17,14,14,9); g.fillStyle='#b9bdc2'; g.fillRect(17,14,14,3);
+  g.fillStyle='#9a9ea3'; g.beginPath(); g.moveTo(30,15); g.lineTo(42,22); g.lineTo(40,25); g.lineTo(29,19); g.fill();
+  g.strokeStyle='#c8a64a'; g.lineWidth=2.5; g.beginPath(); g.arc(13,12,6,0,6.29); g.stroke();
+  return c; })();
 const imgGun=(()=>{ const W=128, H=32, c=document.createElement('canvas'); c.width=W*2; c.height=H; const g=c.getContext('2d'), im=g.createImageData(W*2,H);
   for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const u=x/(W-1), v=Math.abs(y-(H-1)/2)/((H-1)/2);
     const tr=Math.pow(u,1.6)*Math.max(0,1-Math.pow(v,1.4)*1.15);                                   // tracer: tail -> head
     const half=0.12+0.88*Math.sin(Math.min(1,u*1.15)*Math.PI*0.5)*(1-u)*1.9, sp=Math.max(0,Math.min(1,(Math.min(1,half)-v)*3))*Math.min(1,u*8)*Math.min(1,(1-u)*6);
     for(const [o,a] of [[0,tr],[W,sp]]){ const k=(y*W*2+o+x)*4, w=Math.max(0,1-v*1.6); im.data[k]=255; im.data[k+1]=255; im.data[k+2]=255; im.data[k+3]=Math.min(1,a)*255; } }
   g.putImageData(im,0,0); return c; })();
-const TX = { tiles:new spine.GLTexture(ctx,imgTiles), fx:new spine.GLTexture(ctx,imgFx), fxg:new spine.GLTexture(ctx,imgFxg), plate:new spine.GLTexture(ctx,imgPlate), ref:new spine.GLTexture(ctx,imgRef), drone:new spine.GLTexture(ctx,imgDrone), puff:new spine.GLTexture(ctx,imgPuff), gun:new spine.GLTexture(ctx,imgGun), ring:new spine.GLTexture(ctx,imgRing) };
+const TX = { tiles:new spine.GLTexture(ctx,imgTiles), fx:new spine.GLTexture(ctx,imgFx), fxg:new spine.GLTexture(ctx,imgFxg), plate:new spine.GLTexture(ctx,imgPlate), ref:new spine.GLTexture(ctx,imgRef), drone:new spine.GLTexture(ctx,imgDrone), puff:new spine.GLTexture(ctx,imgPuff), gun:new spine.GLTexture(ctx,imgGun), ring:new spine.GLTexture(ctx,imgRing), nade:new spine.GLTexture(ctx,imgNade) };
 for (const t of Object.values(TX)) t.setFilters(gl.LINEAR, gl.LINEAR);
 const TA = LEVEL_ATLAS;
 function uvOf(rect,size){ return [rect[0]/size[0], rect[1]/size[1], (rect[0]+rect[2])/size[0], (rect[1]+rect[3])/size[1]]; }
@@ -110,7 +118,7 @@ function upperOnly(name, keepGun=true, allSlots=false){
                                    || (allSlots && t.slotIndex!==undefined && t.slotIndex!==FLASH_SLOT));
   data.animations.push(new spine.Animation(name+'_upper', tl, a.duration));
 }
-upperOnly('shoot', false); upperOnly('reload'); upperOnly('hurt', false, true); upperOnly('aim_up'); upperOnly('shoot_down');
+upperOnly('shoot', false); upperOnly('reload'); upperOnly('hurt', false, true); upperOnly('aim_up'); upperOnly('shoot_down'); upperOnly('throw');
 const sk = new spine.Skeleton(data);
 const sd = new spine.AnimationStateData(data); sd.defaultMix = 0.12;
 [['jump_rise','fall',0.25],['fall','land',0.04],['land','idle_aim',0.2],['land','run',0.1],['idle_aim','run',0.1],
@@ -126,6 +134,7 @@ const BOOTS=[]; { sk.setToSetupPose(); sk.updateWorldTransform(spine.Physics.upd
     if(sole.length&&up.length) BOOTS.push({slot,at,buf,sole,up}); } }
 const bHip=B('hip'), bChest=B('chest'), bHead=B('head'), bGun=B('gun'), bMuzzle=B('muzzle');
 const flashSlot = sk.slots[FLASH_SLOT];
+const bThrowHand = B('ik_hand_l');
 // aim poses authored in Spine (upper body only): blended in by aim angle, then the gun is set to the exact angle.
 // AIM_*_ANG = muzzle world angle (deg) each pose was authored at, measured on top of idle_aim.
 const AIM_UP=data.findAnimation('aim_up_upper'), AIM_DN=data.findAnimation('shoot_down_upper');
@@ -257,7 +266,7 @@ const walls=[];
 // ===================== SIMULATION =====================
 // ---------- difficulty ----------
 const DIFFS = {
-  easy:  {label:'EASY',   dmg:0.35, cool:2.0, sense:0.7,  bolt:0.65, windup:1.6, regenDelay:2.0, regen:30, pit:15, inv:1.0},
+  easy:  {label:'EASY',   dmg:0.35, cool:2.0, sense:0.7,  bolt:0.65, windup:1.6, regenDelay:2.0, regen:30, pit:15, inv:1.0, infAmmo:true, infNades:true},
   normal:{label:'NORMAL', dmg:0.65, cool:1.4, sense:0.85, bolt:0.8,  windup:1.25,regenDelay:3.0, regen:18, pit:30, inv:0.8},
   hard:  {label:'HARD',   dmg:1.0,  cool:1.0, sense:1.0,  bolt:1.0,  windup:1.0, regenDelay:4.0, regen:12, pit:-1, inv:0.55},
 };
@@ -272,15 +281,15 @@ const ENEMY = {
 const targets = enemiesDef.map(([x,y,type],i)=>({type,x,y,bx:x,by:y,vx:0,vy:0,r:ENEMY[type].r,hp:ENEMY[type].hp,dead:0,ph:i*1.7,hit:0,state:'idle',t:0,cool:1+Math.random(),aggro:0}));
 const SPAWN = {x:checkpoints[0].x, y:checkpoints[0].y};
 const P = {hp:100,inv:0,dead:0,regenT:0,hurtFlash:0,x:SPAWN.x,y:SPAWN.y,vx:0,vy:0,w:44*HERO,h:140*HERO,ground:false,gs:null,face:1,fuel:1,
-  coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,ammo:30,reload:0,cool:0,recoil:0,flash:0,flashN:0,
+  coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,ammo:30,nades:2,throwT:0,thrown:false,throwA:0,reload:0,cool:0,recoil:0,flash:0,flashN:0,
   climb:null,score:0,gems:0,treasures:0,secrets:0,cp:SPAWN,time:0,done:false,stepT:0,prevY:0,aimWorld:0};
 checkpoints[0].on=true;
 const K={}, M={x:innerWidth*0.6,y:innerHeight*0.45,wx:0,wy:0,l:false,r:false};
-addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(!K[k]&&(k==='w'||k===' '||k==='arrowup'))P.buf=0.12; if(k==='r'&&!K.r)startReload();
+addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(!K[k]&&(k==='w'||k===' '||k==='arrowup'))P.buf=0.12; if(k==='r'&&!K.r)startReload(); if(k==='g'&&!K.g)startThrow();
   if(k==='enter'&&P.done) location.reload(); K[k]=true; if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();});
 addEventListener('keyup',e=>{K[e.key.toLowerCase()]=false;});
 canvas.addEventListener('mousemove',e=>{M.x=e.clientX;M.y=e.clientY;});
-canvas.addEventListener('mousedown',e=>{if(e.button===0)M.l=true; if(e.button===2)M.r=true; canvas.focus();});
+canvas.addEventListener('mousedown',e=>{if(e.button===1){e.preventDefault();startThrow();} if(e.button===0)M.l=true; if(e.button===2)M.r=true; canvas.focus();});
 addEventListener('mouseup',e=>{if(e.button===0)M.l=false; if(e.button===2)M.r=false;});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('blur',()=>{for(const k in K)K[k]=false; M.l=M.r=false;});
@@ -340,9 +349,9 @@ function onLand(s,already){
 // ---------- player actions ----------
 const bullets=[], parts=[], ebolts=[];
 let shake=0;
-function startReload(){ if(P.reload>0||P.ammo===30||P.flip>0||P.dead>0) return; P.reload=1.2; st.setAnimation(1,'reload_upper',false).mixDuration=0.1; st.addEmptyAnimation(1,0.15,0); }
+function startReload(){ if(DIFF.infAmmo||P.reload>0||P.throwT>0||P.ammo===30||P.flip>0||P.dead>0) return; P.reload=1.2; st.setAnimation(1,'reload_upper',false).mixDuration=0.1; st.addEmptyAnimation(1,0.15,0); }
 function fire(){
-  P.ammo--; P.cool=0.085; P.recoil=1; P.flash=0.06; P.flashN^=1; shake=Math.min(shake+2.5,7);
+  if(!DIFF.infAmmo) P.ammo--; P.cool=0.085; P.recoil=1; P.flash=0.06; P.flashN^=1; shake=Math.min(shake+2.5,7);
   const e=st.setAnimation(1,'shoot_upper',false); e.mixDuration=0; st.addEmptyAnimation(1,0.08,0);
   const ang=P.aimWorld+(Math.random()-0.5)*0.035, sp=3000;
   bullets.push({x:bMuzzle.worldX,y:bMuzzle.worldY,vx:Math.cos(ang)*sp+P.vx*0.3,vy:Math.sin(ang)*sp+P.vy*0.3,life:0.8,ang});
@@ -368,6 +377,44 @@ function respawn(){
   Object.assign(P,{x:P.cp.x,y:P.cp.y+5,vx:0,vy:0,hp:100,fuel:1,ammo:30,dead:0,inv:1.5,reload:0,gs:null,climb:null});
   for(const t of targets){ t.state='idle'; t.aggro=0; }
   ebolts.length=0; cur=''; play('idle_aim'); fxSpawn(P.x,P.y);
+}
+// ---------- grenades ----------
+// THROW_REL = time of the 'throw' event in the Spine animation (hand at release)
+const nades=[], THROW_T=0.8, THROW_REL=0.44, NADE_R=200;
+// grenade supply crates for normal / hard: one roughly every 1300u, placed on a crystal spot (known reachable)
+const nadePacks=[]; { let next=900; for(const c of [...crystals].sort((a,b)=>a.x-b.x)) if(c.x>=next){ nadePacks.push({x:c.x,y:c.y+34,taken:false,ph:Math.random()*6}); next=c.x+1300; } }
+function startThrow(){
+  if(P.throwT>0||P.dead>0||P.flip>0||P.reload>0||P.done||paused) return;
+  if(!DIFF.infNades && P.nades<=0){ toast('No grenades — find a supply crate',1.6); return; }
+  P.throwT=THROW_T; P.thrown=false; P.throwA=Math.atan2(M.wy-(P.y+90*HERO), M.wx-P.x);
+  P.face = Math.cos(P.throwA)>=0?1:-1;
+  const e=st.setAnimation(1,'throw_upper',false); e.mixDuration=0.08; st.addEmptyAnimation(1,0.15,0);
+}
+function releaseNade(){
+  const a=P.throwA, sp=600;
+  nades.push({x:bThrowHand.worldX,y:bThrowHand.worldY,vx:Math.cos(a)*sp+P.vx*0.4,vy:Math.sin(a)*sp+170+Math.max(0,P.vy)*0.3,fuse:1.6,rot:0,vr:-P.face*12,rest:false});
+  if(!DIFF.infNades) P.nades--;
+}
+function explodeNade(g){
+  fxBlast(g.x,g.y,1.25); shake=Math.min(shake+6,18);
+  for(const t of targets){ if(t.dead>0||t.spawnT>0) continue; const d=Math.hypot(t.x-g.x,t.y-g.y);
+    if(d<NADE_R+t.r && lineOfSight(g.x,g.y,t.x,t.y)){ t.hp-=d<NADE_R*0.6?99:2; t.hit=0.16; t.aggro=2.5; t.vx+=(t.x-g.x)/(d||1)*500; t.vy+=(t.y-g.y)/(d||1)*500+200;
+      if(t.hp<=0){ t.dead=4; P.score++; fxBlast(t.x,t.y,0.8); } } }
+  for(const b of breakables){ if(b.state!=='idle') continue; const cx=b.p.x+b.p.w/2, cy=b.p.top-b.p.h/2; if(Math.hypot(cx-g.x,cy-g.y)<NADE_R+b.p.w/2){ b.state='shake'; b.t=0.08; } }
+}
+function updateNades(dt){
+  for(const g of nades){
+    g.fuse-=dt; g.vy-=G*0.85*dt; g.rot+=g.vr*dt;
+    for(let i=0;i<3;i++){ const nx=g.x+g.vx*dt/3, ny=g.y+g.vy*dt/3;
+      if(pointSolid(nx,g.y)){ g.vx*=-0.45; g.vr*=-0.6; } else g.x=nx;
+      if(pointSolid(g.x,ny)){ if(g.vy<0){ g.vy*=-0.38; g.vx*=0.7; g.vr*=0.6; } else g.vy*=-0.3; }
+      else { const s=floorHit(g.x,g.y,g.x,ny); if(s){ g.y=surfY(s,g.x)+0.5; g.vy=Math.abs(g.vy)>140?-g.vy*0.38:0; g.vx*=0.7; g.vr*=0.6; } else g.y=ny; } }
+    if(g.vy===0) { g.vx-=g.vx*Math.min(1,4*dt); g.vr=g.vx*-0.08; }
+    for(const t of targets) if(t.dead<=0 && !(t.spawnT>0) && Math.hypot(t.x-g.x,t.y-g.y)<t.r+8) g.fuse=Math.min(g.fuse,0);   // contact with a drone
+    if(Math.random()<0.25) part({puff:(Math.random()*PUFF_N)|0,x:g.x,y:g.y,vx:rnd(-20,20),vy:rnd(20,50),rot:rnd(0,6),life:0.5,s0:6,s1:18,rgb:[0.55,0.52,0.5],k:0.35,drag:2});
+    if(g.y<KILL_Y-200) g.fuse=-1;
+    if(g.fuse<=0){ g.dead=true; if(g.y>KILL_Y-200) explodeNade(g); } }
+  for(let i=nades.length-1;i>=0;i--) if(nades[i].dead) nades.splice(i,1);
 }
 // ---------- particles ----------
 function part(o){ parts.push(Object.assign({x:0,y:0,vx:0,vy:0,rot:0,vr:0,life:0.5,s0:0.3,s1:0.3,rgb:[1,1,1],k:1,grav:0,drag:0,tint:false,align:false,flipX:false,fade:1},o,{max:o.life||0.5})); }
@@ -565,6 +612,10 @@ function updateWorld(dt){
   // secrets
   for(const s of secrets){ const inside = P.x>s.x && P.x<s.x+s.w && P.y+40>s.y && P.y<s.y+s.h+40;
     if(inside && !s.found){ s.found=true; P.secrets++; toast('✦ Secret area discovered'); fxSparkle(P.x,P.y+120*HERO,true); } }
+  // grenade supply crates (normal / hard)
+  if(!DIFF.infNades) for(const n of nadePacks){ if(n.taken) continue; n.ph+=dt;
+    if(Math.hypot(P.x-n.x,P.y+60*HERO-n.y)<70 && P.dead<=0){ n.taken=true; P.nades=Math.min(9,P.nades+2); toast('+2 grenades',1.4); fxSparkle(n.x,n.y); } }
+  updateNades(dt);
   // crystals
   for(const c of crystals){ if(c.taken) continue; c.ph+=dt;
     const dx=P.x-c.x, dy=P.y+80*HERO-c.y, d=Math.hypot(dx,dy);
@@ -650,7 +701,8 @@ function update(dt){
   P.flip=Math.max(0,P.flip-dt); P.land=Math.max(0,P.land-dt); P.cool=Math.max(0,P.cool-dt);
   P.recoil=Math.max(0,P.recoil-dt*9); P.flash=Math.max(0,P.flash-dt);
   if(P.reload>0){ P.reload-=dt; if(P.reload<=0){P.reload=0;P.ammo=30;} }
-  if(M.l && alive && P.cool<=0 && P.ammo>0 && P.reload<=0 && P.flip<=0) fire();
+  if(P.throwT>0){ P.throwT-=dt; if(!P.thrown && THROW_T-P.throwT>=THROW_REL){ P.thrown=true; if(alive) releaseNade(); } }
+  if(M.l && alive && P.cool<=0 && P.ammo>0 && P.reload<=0 && P.flip<=0 && P.throwT<=0) fire();
   P.inv=Math.max(0,P.inv-dt); P.hurtFlash=Math.max(0,P.hurtFlash-dt*2.5);
   if(alive){ P.regenT-=dt; if(P.regenT<=0 && P.hp<100) P.hp=Math.min(100,P.hp+DIFF.regen*dt); }
   else if(P.dead>0){ P.dead-=dt; if(P.dead<=0) respawn(); }
@@ -676,7 +728,7 @@ function update(dt){
   const piv={x:bGun.worldX||P.x, y:bGun.worldY||P.y+90*HERO};
   let dx=(M.wx-piv.x)*P.face, dy=M.wy-piv.y;
   let th=Math.atan2(dy,Math.max(dx,4))*180/Math.PI; th=clamp(th,-78,82);
-  const lock = P.flip>0 || P.reload>0 || P.dead>0 || P.done;
+  const lock = P.flip>0 || P.reload>0 || P.throwT>0 || P.dead>0 || P.done;
   if(!lock){
     const up=th>0?clamp(th/AIM_UP_ANG,0,1):0, dn=th<0?clamp(th/AIM_DN_ANG,0,1):0;
     if(up>0) AIM_UP.apply(sk,0,0,false,null,up,spine.MixBlend.replace,spine.MixDirection.mixIn);
@@ -733,7 +785,7 @@ function update(dt){
 
   hud('fuel').style.width=(P.fuel*100)+'%'; hud('fuel').classList.toggle('low',P.fuel<0.2);
   hud('hp').style.width=P.hp+'%'; hud('hp').classList.toggle('low',P.hp<30);
-  hud('ammo').textContent = P.reload>0 ? 'RELOAD' : P.ammo;
+  hud('ammo').textContent = DIFF.infAmmo ? '∞' : P.reload>0 ? 'RELOAD' : P.ammo; hud('nades').textContent = DIFF.infNades ? '∞' : P.nades;
   hud('gems').textContent = P.gems; hud('treas').textContent = `${P.treasures}/${chests.length}`; hud('kills').textContent=P.score;
   hud('vign').style.opacity=Math.max(P.hurtFlash*0.9, P.hp<30&&P.dead<=0?0.25+0.15*Math.sin(performance.now()/180):0, P.dead>0?0.6:0);
   hud('dead').style.display=P.dead>0?'grid':'none';
@@ -826,6 +878,12 @@ function draw(dt){
     if(sp>=1) for(let i=0;i<E.hp;i++) R.rect(true,x-E.hp*4.5+i*9,y-H*0.62-4,7,3,i<t.hp?col(0.3,1,0.8,1):col(0.3,0.3,0.3,1));
   }
   for(const b of ebolts){ fx('fireball',b.x,b.y,0.12,b.a,[1,0.5,0.18],1.3,true,true,0.85,0.5); fx('orb_s',b.x,b.y,0.18,0,[1,0.6,0.2],0.75,true); }
+  // grenade supply crates (normal / hard) + live grenades
+  if(!DIFF.infNades) for(const n of nadePacks){ if(n.taken||n.x<x0-100||n.x>x1+100) continue; const bob=Math.sin(n.ph*2)*5;
+    fx('orb_soft',n.x,n.y+bob,0.45,0,[1,0.6,0.2],0.35,true);
+    setBlend(false); spr(TX.nade,[0,0,1,1],n.x-8,n.y+bob,18,24,0.25,WHITE,false); spr(TX.nade,[0,0,1,1],n.x+8,n.y+bob,18,24,-0.2,WHITE,true); }
+  for(const g of nades){ setBlend(false); spr(TX.nade,[0,0,1,1],g.x,g.y+9,15,20,g.rot,WHITE,false);
+    if(Math.sin((1.6-g.fuse)*(8+(1.6-g.fuse)*14))>0) fx('orb_s',g.x,g.y+9,0.16,0,[1,0.25,0.1],1.2,true); }
   // player
   sk.color.a = (P.inv>0 && P.dead<=0) ? (Math.floor(performance.now()/70)%2?0.35:1) : 1;
   R.drawSkeleton(sk,charAtlas.pages[0].pma); blend=-1;
@@ -903,6 +961,7 @@ if(IS_TOUCH){
   btn('bJump',()=>{ if(!paused) P.buf=0.12; K[' ']=true; },()=>{ K[' ']=false; });
   btn('bJet',()=>{ if(!paused) M.r=true; },()=>{ M.r=false; });
   btn('bReload',()=>{ if(!paused) startReload(); });
+  btn('bNade',()=>{ if(!paused) startThrow(); });
   btn('bZoomIn',()=>zoomBy(1/1.15)); btn('bZoomOut',()=>zoomBy(1.15));
   btn('bPause',()=>{ if(started && !P.done) setPause(!paused); });
   hud('end').addEventListener('click',()=>{ if(P.done) location.reload(); });
@@ -927,7 +986,7 @@ function frame(now){
 hud('src').textContent = 'Character: '+sf.src;
 hud('gemsTotal').textContent = '/'+totalCrystals;
 hud('loading').style.display='none';
-window.__game={P,st,sk,K,M,targets,checkpoints,swings,breakables,secrets,crystals,chests,RELIC,ladders,surfaces,placements,LEVEL_W,setView:v=>VIEW_H=v};
+window.__game={P,st,sk,K,M,targets,checkpoints,nades,nadePacks,startThrow,setDifficulty,swings,breakables,secrets,crystals,chests,RELIC,ladders,surfaces,placements,LEVEL_W,setView:v=>VIEW_H=v};
 requestAnimationFrame(t=>{last=t; requestAnimationFrame(frame);});
 })().catch(e=>{document.getElementById('loading').textContent='Error: '+e.message; console.error(e);});
 

@@ -39,6 +39,7 @@ if(IS_TOUCH){
   btn('bJump',()=>{ if(!paused) P.buf=0.12; K[' ']=true; },()=>{ K[' ']=false; });
   btn('bJet',()=>{ if(!paused) M.r=true; },()=>{ M.r=false; });
   btn('bReload',()=>{ if(!paused) startReload(); });
+  btn('bNade',()=>{ if(!paused) startThrow(); });
   btn('bZoomIn',()=>zoomBy(1/1.15)); btn('bZoomOut',()=>zoomBy(1.15));
   btn('bPause',()=>{ if(started && !P.done) setPause(!paused); });
   hud('end').addEventListener('click',()=>{ if(P.done) location.reload(); });
@@ -63,6 +64,6 @@ function frame(now){
 hud('src').textContent = 'Character: '+sf.src;
 hud('gemsTotal').textContent = '/'+totalCrystals;
 hud('loading').style.display='none';
-window.__game={P,st,sk,K,M,targets,checkpoints,swings,breakables,secrets,crystals,chests,RELIC,ladders,surfaces,placements,LEVEL_W,setView:v=>VIEW_H=v};
+window.__game={P,st,sk,K,M,targets,checkpoints,nades,nadePacks,startThrow,setDifficulty,swings,breakables,secrets,crystals,chests,RELIC,ladders,surfaces,placements,LEVEL_W,setView:v=>VIEW_H=v};
 requestAnimationFrame(t=>{last=t; requestAnimationFrame(frame);});
 })().catch(e=>{document.getElementById('loading').textContent='Error: '+e.message; console.error(e);});

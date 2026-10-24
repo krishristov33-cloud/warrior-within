@@ -11,9 +11,9 @@ A playable side-view platformer shooter prototype (Soldat-inspired), with the wa
 | W / Space jump, again mid-air = flip | JUMP button (tap again mid-air = flip) |
 | Mouse aim (turns the character) · Left click shoot | Right side: floating stick, aim, push further to fire |
 | Right click jet pack | JET button (hold) |
-| R reload · Wheel or +/− zoom · H show/hide controls · Esc pause | R button · +/− zoom · II pause |
+| G / middle click grenade · R reload · Wheel or +/− zoom · H show/hide controls · Esc pause | G button grenade · R button · +/− zoom · II pause |
 
-Three difficulty levels (Easy / Normal / Hard) are chosen at start and from the pause menu.
+Three difficulty levels (Easy / Normal / Hard) are chosen at start and from the pause menu. Easy has infinite ammo and grenades; on Normal / Hard you start with 2 grenades and pick up more (+2) from grenade crates around the level.
 
 ## Project layout
 - `index.html` — the built game (everything embedded).

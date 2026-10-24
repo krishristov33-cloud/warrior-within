@@ -1,7 +1,7 @@
 // ===================== SIMULATION =====================
 // ---------- difficulty ----------
 const DIFFS = {
-  easy:  {label:'EASY',   dmg:0.35, cool:2.0, sense:0.7,  bolt:0.65, windup:1.6, regenDelay:2.0, regen:30, pit:15, inv:1.0},
+  easy:  {label:'EASY',   dmg:0.35, cool:2.0, sense:0.7,  bolt:0.65, windup:1.6, regenDelay:2.0, regen:30, pit:15, inv:1.0, infAmmo:true, infNades:true},
   normal:{label:'NORMAL', dmg:0.65, cool:1.4, sense:0.85, bolt:0.8,  windup:1.25,regenDelay:3.0, regen:18, pit:30, inv:0.8},
   hard:  {label:'HARD',   dmg:1.0,  cool:1.0, sense:1.0,  bolt:1.0,  windup:1.0, regenDelay:4.0, regen:12, pit:-1, inv:0.55},
 };
@@ -16,15 +16,15 @@ const ENEMY = {
 const targets = enemiesDef.map(([x,y,type],i)=>({type,x,y,bx:x,by:y,vx:0,vy:0,r:ENEMY[type].r,hp:ENEMY[type].hp,dead:0,ph:i*1.7,hit:0,state:'idle',t:0,cool:1+Math.random(),aggro:0}));
 const SPAWN = {x:checkpoints[0].x, y:checkpoints[0].y};
 const P = {hp:100,inv:0,dead:0,regenT:0,hurtFlash:0,x:SPAWN.x,y:SPAWN.y,vx:0,vy:0,w:44*HERO,h:140*HERO,ground:false,gs:null,face:1,fuel:1,
-  coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,ammo:30,reload:0,cool:0,recoil:0,flash:0,flashN:0,
+  coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,ammo:30,nades:2,throwT:0,thrown:false,throwA:0,reload:0,cool:0,recoil:0,flash:0,flashN:0,
   climb:null,score:0,gems:0,treasures:0,secrets:0,cp:SPAWN,time:0,done:false,stepT:0,prevY:0,aimWorld:0};
 checkpoints[0].on=true;
 const K={}, M={x:innerWidth*0.6,y:innerHeight*0.45,wx:0,wy:0,l:false,r:false};
-addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(!K[k]&&(k==='w'||k===' '||k==='arrowup'))P.buf=0.12; if(k==='r'&&!K.r)startReload();
+addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(!K[k]&&(k==='w'||k===' '||k==='arrowup'))P.buf=0.12; if(k==='r'&&!K.r)startReload(); if(k==='g'&&!K.g)startThrow();
   if(k==='enter'&&P.done) location.reload(); K[k]=true; if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();});
 addEventListener('keyup',e=>{K[e.key.toLowerCase()]=false;});
 canvas.addEventListener('mousemove',e=>{M.x=e.clientX;M.y=e.clientY;});
-canvas.addEventListener('mousedown',e=>{if(e.button===0)M.l=true; if(e.button===2)M.r=true; canvas.focus();});
+canvas.addEventListener('mousedown',e=>{if(e.button===1){e.preventDefault();startThrow();} if(e.button===0)M.l=true; if(e.button===2)M.r=true; canvas.focus();});
 addEventListener('mouseup',e=>{if(e.button===0)M.l=false; if(e.button===2)M.r=false;});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('blur',()=>{for(const k in K)K[k]=false; M.l=M.r=false;});
@@ -84,9 +84,9 @@ function onLand(s,already){
 // ---------- player actions ----------
 const bullets=[], parts=[], ebolts=[];
 let shake=0;
-function startReload(){ if(P.reload>0||P.ammo===30||P.flip>0||P.dead>0) return; P.reload=1.2; st.setAnimation(1,'reload_upper',false).mixDuration=0.1; st.addEmptyAnimation(1,0.15,0); }
+function startReload(){ if(DIFF.infAmmo||P.reload>0||P.throwT>0||P.ammo===30||P.flip>0||P.dead>0) return; P.reload=1.2; st.setAnimation(1,'reload_upper',false).mixDuration=0.1; st.addEmptyAnimation(1,0.15,0); }
 function fire(){
-  P.ammo--; P.cool=0.085; P.recoil=1; P.flash=0.06; P.flashN^=1; shake=Math.min(shake+2.5,7);
+  if(!DIFF.infAmmo) P.ammo--; P.cool=0.085; P.recoil=1; P.flash=0.06; P.flashN^=1; shake=Math.min(shake+2.5,7);
   const e=st.setAnimation(1,'shoot_upper',false); e.mixDuration=0; st.addEmptyAnimation(1,0.08,0);
   const ang=P.aimWorld+(Math.random()-0.5)*0.035, sp=3000;
   bullets.push({x:bMuzzle.worldX,y:bMuzzle.worldY,vx:Math.cos(ang)*sp+P.vx*0.3,vy:Math.sin(ang)*sp+P.vy*0.3,life:0.8,ang});
@@ -112,6 +112,44 @@ function respawn(){
   Object.assign(P,{x:P.cp.x,y:P.cp.y+5,vx:0,vy:0,hp:100,fuel:1,ammo:30,dead:0,inv:1.5,reload:0,gs:null,climb:null});
   for(const t of targets){ t.state='idle'; t.aggro=0; }
   ebolts.length=0; cur=''; play('idle_aim'); fxSpawn(P.x,P.y);
+}
+// ---------- grenades ----------
+// THROW_REL = time of the 'throw' event in the Spine animation (hand at release)
+const nades=[], THROW_T=0.8, THROW_REL=0.44, NADE_R=200;
+// grenade supply crates for normal / hard: one roughly every 1300u, placed on a crystal spot (known reachable)
+const nadePacks=[]; { let next=900; for(const c of [...crystals].sort((a,b)=>a.x-b.x)) if(c.x>=next){ nadePacks.push({x:c.x,y:c.y+34,taken:false,ph:Math.random()*6}); next=c.x+1300; } }
+function startThrow(){
+  if(P.throwT>0||P.dead>0||P.flip>0||P.reload>0||P.done||paused) return;
+  if(!DIFF.infNades && P.nades<=0){ toast('No grenades — find a supply crate',1.6); return; }
+  P.throwT=THROW_T; P.thrown=false; P.throwA=Math.atan2(M.wy-(P.y+90*HERO), M.wx-P.x);
+  P.face = Math.cos(P.throwA)>=0?1:-1;
+  const e=st.setAnimation(1,'throw_upper',false); e.mixDuration=0.08; st.addEmptyAnimation(1,0.15,0);
+}
+function releaseNade(){
+  const a=P.throwA, sp=600;
+  nades.push({x:bThrowHand.worldX,y:bThrowHand.worldY,vx:Math.cos(a)*sp+P.vx*0.4,vy:Math.sin(a)*sp+170+Math.max(0,P.vy)*0.3,fuse:1.6,rot:0,vr:-P.face*12,rest:false});
+  if(!DIFF.infNades) P.nades--;
+}
+function explodeNade(g){
+  fxBlast(g.x,g.y,1.25); shake=Math.min(shake+6,18);
+  for(const t of targets){ if(t.dead>0||t.spawnT>0) continue; const d=Math.hypot(t.x-g.x,t.y-g.y);
+    if(d<NADE_R+t.r && lineOfSight(g.x,g.y,t.x,t.y)){ t.hp-=d<NADE_R*0.6?99:2; t.hit=0.16; t.aggro=2.5; t.vx+=(t.x-g.x)/(d||1)*500; t.vy+=(t.y-g.y)/(d||1)*500+200;
+      if(t.hp<=0){ t.dead=4; P.score++; fxBlast(t.x,t.y,0.8); } } }
+  for(const b of breakables){ if(b.state!=='idle') continue; const cx=b.p.x+b.p.w/2, cy=b.p.top-b.p.h/2; if(Math.hypot(cx-g.x,cy-g.y)<NADE_R+b.p.w/2){ b.state='shake'; b.t=0.08; } }
+}
+function updateNades(dt){
+  for(const g of nades){
+    g.fuse-=dt; g.vy-=G*0.85*dt; g.rot+=g.vr*dt;
+    for(let i=0;i<3;i++){ const nx=g.x+g.vx*dt/3, ny=g.y+g.vy*dt/3;
+      if(pointSolid(nx,g.y)){ g.vx*=-0.45; g.vr*=-0.6; } else g.x=nx;
+      if(pointSolid(g.x,ny)){ if(g.vy<0){ g.vy*=-0.38; g.vx*=0.7; g.vr*=0.6; } else g.vy*=-0.3; }
+      else { const s=floorHit(g.x,g.y,g.x,ny); if(s){ g.y=surfY(s,g.x)+0.5; g.vy=Math.abs(g.vy)>140?-g.vy*0.38:0; g.vx*=0.7; g.vr*=0.6; } else g.y=ny; } }
+    if(g.vy===0) { g.vx-=g.vx*Math.min(1,4*dt); g.vr=g.vx*-0.08; }
+    for(const t of targets) if(t.dead<=0 && !(t.spawnT>0) && Math.hypot(t.x-g.x,t.y-g.y)<t.r+8) g.fuse=Math.min(g.fuse,0);   // contact with a drone
+    if(Math.random()<0.25) part({puff:(Math.random()*PUFF_N)|0,x:g.x,y:g.y,vx:rnd(-20,20),vy:rnd(20,50),rot:rnd(0,6),life:0.5,s0:6,s1:18,rgb:[0.55,0.52,0.5],k:0.35,drag:2});
+    if(g.y<KILL_Y-200) g.fuse=-1;
+    if(g.fuse<=0){ g.dead=true; if(g.y>KILL_Y-200) explodeNade(g); } }
+  for(let i=nades.length-1;i>=0;i--) if(nades[i].dead) nades.splice(i,1);
 }
 // ---------- particles ----------
 function part(o){ parts.push(Object.assign({x:0,y:0,vx:0,vy:0,rot:0,vr:0,life:0.5,s0:0.3,s1:0.3,rgb:[1,1,1],k:1,grav:0,drag:0,tint:false,align:false,flipX:false,fade:1},o,{max:o.life||0.5})); }

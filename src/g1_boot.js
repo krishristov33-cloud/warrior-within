@@ -44,13 +44,21 @@ const imgRing=(()=>{ const S=128, c=document.createElement('canvas'); c.width=c.
   for(let y=0;y<S;y++) for(let x=0;x<S;x++){ const r=Math.hypot(x-S/2+0.5,y-S/2+0.5)/(S/2), a=Math.exp(-Math.pow((r-0.82)/0.07,2))+0.25*Math.exp(-Math.pow((r-0.82)/0.2,2));
     const k=(y*S+x)*4; im.data[k]=im.data[k+1]=im.data[k+2]=255; im.data[k+3]=Math.min(1,a)*255; }
   g.putImageData(im,0,0); return c; })();
+const imgNade=(()=>{ const c=document.createElement('canvas'); c.width=48; c.height=64; const g=c.getContext('2d');   // placeholder grenade art
+  g.fillStyle='#3d4a2c'; g.beginPath(); g.ellipse(24,40,16,20,0,0,6.29); g.fill();
+  g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=2; for(const y of [32,42,52]){ g.beginPath(); g.moveTo(9,y); g.lineTo(39,y); g.stroke(); } g.beginPath(); g.moveTo(24,21); g.lineTo(24,60); g.stroke();
+  const hl=g.createRadialGradient(17,32,1,17,32,13); hl.addColorStop(0,'rgba(220,240,180,.55)'); hl.addColorStop(1,'rgba(220,240,180,0)'); g.fillStyle=hl; g.beginPath(); g.ellipse(24,40,16,20,0,0,6.29); g.fill();
+  g.fillStyle='#8b8f94'; g.fillRect(17,14,14,9); g.fillStyle='#b9bdc2'; g.fillRect(17,14,14,3);
+  g.fillStyle='#9a9ea3'; g.beginPath(); g.moveTo(30,15); g.lineTo(42,22); g.lineTo(40,25); g.lineTo(29,19); g.fill();
+  g.strokeStyle='#c8a64a'; g.lineWidth=2.5; g.beginPath(); g.arc(13,12,6,0,6.29); g.stroke();
+  return c; })();
 const imgGun=(()=>{ const W=128, H=32, c=document.createElement('canvas'); c.width=W*2; c.height=H; const g=c.getContext('2d'), im=g.createImageData(W*2,H);
   for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const u=x/(W-1), v=Math.abs(y-(H-1)/2)/((H-1)/2);
     const tr=Math.pow(u,1.6)*Math.max(0,1-Math.pow(v,1.4)*1.15);                                   // tracer: tail -> head
     const half=0.12+0.88*Math.sin(Math.min(1,u*1.15)*Math.PI*0.5)*(1-u)*1.9, sp=Math.max(0,Math.min(1,(Math.min(1,half)-v)*3))*Math.min(1,u*8)*Math.min(1,(1-u)*6);
     for(const [o,a] of [[0,tr],[W,sp]]){ const k=(y*W*2+o+x)*4, w=Math.max(0,1-v*1.6); im.data[k]=255; im.data[k+1]=255; im.data[k+2]=255; im.data[k+3]=Math.min(1,a)*255; } }
   g.putImageData(im,0,0); return c; })();
-const TX = { tiles:new spine.GLTexture(ctx,imgTiles), fx:new spine.GLTexture(ctx,imgFx), fxg:new spine.GLTexture(ctx,imgFxg), plate:new spine.GLTexture(ctx,imgPlate), ref:new spine.GLTexture(ctx,imgRef), drone:new spine.GLTexture(ctx,imgDrone), puff:new spine.GLTexture(ctx,imgPuff), gun:new spine.GLTexture(ctx,imgGun), ring:new spine.GLTexture(ctx,imgRing) };
+const TX = { tiles:new spine.GLTexture(ctx,imgTiles), fx:new spine.GLTexture(ctx,imgFx), fxg:new spine.GLTexture(ctx,imgFxg), plate:new spine.GLTexture(ctx,imgPlate), ref:new spine.GLTexture(ctx,imgRef), drone:new spine.GLTexture(ctx,imgDrone), puff:new spine.GLTexture(ctx,imgPuff), gun:new spine.GLTexture(ctx,imgGun), ring:new spine.GLTexture(ctx,imgRing), nade:new spine.GLTexture(ctx,imgNade) };
 for (const t of Object.values(TX)) t.setFilters(gl.LINEAR, gl.LINEAR);
 const TA = LEVEL_ATLAS;
 function uvOf(rect,size){ return [rect[0]/size[0], rect[1]/size[1], (rect[0]+rect[2])/size[0], (rect[1]+rect[3])/size[1]]; }
