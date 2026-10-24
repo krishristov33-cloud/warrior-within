@@ -232,7 +232,7 @@ solid(-600,-400,600,2400);
 solid(LEVEL_W,-400,600,2400);
 solid(-600,REF_H-30,LEVEL_W+1200,400);
 checkpoint(120,mapY(768));
-hint(0,500,'A/D walk · Shift run · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot');
+hint(0,500,'A/D run · Shift walk · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot');
 hint(330,420,'Press W / S at a ladder to climb',-1e9,700);
 hint(380,700,'Chained platforms swing and sag — use them to cross',300);
 hint(1500,1800,'Hold RIGHT MOUSE to jet. Fuel refills on the ground',400);
@@ -617,13 +617,13 @@ function update(dt){
     if(P.climb && P.buf>0){ P.climb=null; P.buf=0; P.vy=JUMP*0.85; P.vx=inX*RUN*0.7; }
     if(P.climb) P.y=clamp(P.y,l.bot-2,l.top+2);
   }
-  const maxv = P.crouch?WALK*0.6 : K.shift?RUN:WALK;   // walk by default, hold Shift to run
+  const maxv = P.crouch?WALK*0.6 : K.shift?WALK:RUN;   // run by default, hold Shift to walk
   if(P.climb){ moveAndCollide(dt); }
   else {
   if(P.ground){
     if(inX){ const d=inX*maxv-P.vx; P.vx += Math.sign(d)*Math.min(Math.abs(d),ACC_G*dt); }
     else { const s=Math.sign(P.vx); P.vx -= s*Math.min(Math.abs(P.vx),FRIC*dt); }
-  } else { if(inX && inX*P.vx < (K.shift?RUN:RUN_ANIM)) P.vx += inX*ACC_A*dt; P.vx -= P.vx*0.12*dt; }
+  } else { if(inX && inX*P.vx < (K.shift?RUN_ANIM:RUN)) P.vx += inX*ACC_A*dt; P.vx -= P.vx*0.12*dt; }
   P.coyote = P.ground?0.09:Math.max(0,P.coyote-dt); P.buf=Math.max(0,P.buf-dt); P.drop=Math.max(0,P.drop-dt);
   if(P.buf>0){
     if(down && P.ground && P.gs && !lad){ P.drop=0.22; P.ground=false; P.gs=null; P.buf=0; P.vy=-120; }
@@ -895,7 +895,7 @@ if(IS_TOUCH){
     zone.addEventListener('pointermove',e=>{ if(e.pointerId===id) set(e.clientX,e.clientY); });
     const end=e=>{ if(e.pointerId!==id) return; id=null; knob.style.transform=''; el.classList.remove('on'); home(); onEnd(); };
     zone.addEventListener('pointerup',end); zone.addEventListener('pointercancel',end); };
-  stick(hud('zoneL'),hud('stickL'),hud('knobL'),(x,y)=>{ if(paused) return; K.a=x<-0.35; K.d=x>0.35; K.shift=Math.abs(x)>0.85; const up=y<-0.55, dn=y>0.55; if(up&&!K.w&&!P.climb){} K.w=up; K.s=dn; },()=>{ K.a=K.d=K.w=K.s=K.shift=false; });
+  stick(hud('zoneL'),hud('stickL'),hud('knobL'),(x,y)=>{ if(paused) return; K.a=x<-0.35; K.d=x>0.35; K.shift=Math.abs(x)<=0.85; /* partial push walks */ const up=y<-0.55, dn=y>0.55; if(up&&!K.w&&!P.climb){} K.w=up; K.s=dn; },()=>{ K.a=K.d=K.w=K.s=K.shift=false; });
   // right stick: aim + auto-fire while pushed
   stick(hud('zoneR'),hud('stickR'),hud('knobR'),(x,y)=>{ if(paused) return; const L=Math.hypot(x,y); if(L>0.2){ TOUCH.ax=x/L; TOUCH.ay=-y/L; TOUCH.aim=true; } M.l = L>0.55; },()=>{ M.l=false; });
   const btn=(id,down,up)=>{ const el=hud(id); el.addEventListener('pointerdown',e=>{ e.preventDefault(); el.classList.add('on'); try{ el.setPointerCapture(e.pointerId); }catch(_){} down(); });
@@ -907,7 +907,7 @@ if(IS_TOUCH){
   btn('bPause',()=>{ if(started && !P.done) setPause(!paused); });
   hud('end').addEventListener('click',()=>{ if(P.done) location.reload(); });
   for(const h of hints){ h.text=h.text
-    .replace('A/D walk · Shift run · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot','Left stick: move (push fully to run) · JUMP (tap again mid-air to flip) · Right stick: aim & fire')
+    .replace('A/D run · Shift walk · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot','Left stick: move (push partly to walk) · JUMP (tap again mid-air to flip) · Right stick: aim & fire')
     .replace('Press W / S at a ladder to climb','Push the left stick up / down at a ladder to climb')
     .replace('Hold RIGHT MOUSE to jet. Fuel refills on the ground','Hold JET to fly. Fuel refills on the ground'); }
   document.addEventListener('gesturestart',e=>e.preventDefault());

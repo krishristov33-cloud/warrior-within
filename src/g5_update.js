@@ -85,13 +85,13 @@ function update(dt){
     if(P.climb && P.buf>0){ P.climb=null; P.buf=0; P.vy=JUMP*0.85; P.vx=inX*RUN*0.7; }
     if(P.climb) P.y=clamp(P.y,l.bot-2,l.top+2);
   }
-  const maxv = P.crouch?WALK*0.6 : K.shift?RUN:WALK;   // walk by default, hold Shift to run
+  const maxv = P.crouch?WALK*0.6 : K.shift?WALK:RUN;   // run by default, hold Shift to walk
   if(P.climb){ moveAndCollide(dt); }
   else {
   if(P.ground){
     if(inX){ const d=inX*maxv-P.vx; P.vx += Math.sign(d)*Math.min(Math.abs(d),ACC_G*dt); }
     else { const s=Math.sign(P.vx); P.vx -= s*Math.min(Math.abs(P.vx),FRIC*dt); }
-  } else { if(inX && inX*P.vx < (K.shift?RUN:RUN_ANIM)) P.vx += inX*ACC_A*dt; P.vx -= P.vx*0.12*dt; }
+  } else { if(inX && inX*P.vx < (K.shift?RUN_ANIM:RUN)) P.vx += inX*ACC_A*dt; P.vx -= P.vx*0.12*dt; }
   P.coyote = P.ground?0.09:Math.max(0,P.coyote-dt); P.buf=Math.max(0,P.buf-dt); P.drop=Math.max(0,P.drop-dt);
   if(P.buf>0){
     if(down && P.ground && P.gs && !lad){ P.drop=0.22; P.ground=false; P.gs=null; P.buf=0; P.vy=-120; }

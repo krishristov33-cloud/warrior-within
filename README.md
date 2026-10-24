@@ -7,7 +7,7 @@ A playable side-view platformer shooter prototype (Soldat-inspired), with the wa
 ## Controls
 | Desktop | Mobile |
 |---|---|
-| A / D walk · Shift run · S crouch | Left side: floating stick, move (push fully to run) (up/down at ladders to climb) |
+| A / D run · Shift walk · S crouch | Left side: floating stick, move (push partly to walk, fully to run) (up/down at ladders to climb) |
 | W / Space jump, again mid-air = flip | JUMP button (tap again mid-air = flip) |
 | Mouse aim (turns the character) · Left click shoot | Right side: floating stick, aim, push further to fire |
 | Right click jet pack | JET button (hold) |

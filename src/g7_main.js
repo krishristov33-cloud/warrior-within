@@ -31,7 +31,7 @@ if(IS_TOUCH){
     zone.addEventListener('pointermove',e=>{ if(e.pointerId===id) set(e.clientX,e.clientY); });
     const end=e=>{ if(e.pointerId!==id) return; id=null; knob.style.transform=''; el.classList.remove('on'); home(); onEnd(); };
     zone.addEventListener('pointerup',end); zone.addEventListener('pointercancel',end); };
-  stick(hud('zoneL'),hud('stickL'),hud('knobL'),(x,y)=>{ if(paused) return; K.a=x<-0.35; K.d=x>0.35; K.shift=Math.abs(x)>0.85; const up=y<-0.55, dn=y>0.55; if(up&&!K.w&&!P.climb){} K.w=up; K.s=dn; },()=>{ K.a=K.d=K.w=K.s=K.shift=false; });
+  stick(hud('zoneL'),hud('stickL'),hud('knobL'),(x,y)=>{ if(paused) return; K.a=x<-0.35; K.d=x>0.35; K.shift=Math.abs(x)<=0.85; /* partial push walks */ const up=y<-0.55, dn=y>0.55; if(up&&!K.w&&!P.climb){} K.w=up; K.s=dn; },()=>{ K.a=K.d=K.w=K.s=K.shift=false; });
   // right stick: aim + auto-fire while pushed
   stick(hud('zoneR'),hud('stickR'),hud('knobR'),(x,y)=>{ if(paused) return; const L=Math.hypot(x,y); if(L>0.2){ TOUCH.ax=x/L; TOUCH.ay=-y/L; TOUCH.aim=true; } M.l = L>0.55; },()=>{ M.l=false; });
   const btn=(id,down,up)=>{ const el=hud(id); el.addEventListener('pointerdown',e=>{ e.preventDefault(); el.classList.add('on'); try{ el.setPointerCapture(e.pointerId); }catch(_){} down(); });
@@ -43,7 +43,7 @@ if(IS_TOUCH){
   btn('bPause',()=>{ if(started && !P.done) setPause(!paused); });
   hud('end').addEventListener('click',()=>{ if(P.done) location.reload(); });
   for(const h of hints){ h.text=h.text
-    .replace('A/D walk · Shift run · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot','Left stick: move (push fully to run) · JUMP (tap again mid-air to flip) · Right stick: aim & fire')
+    .replace('A/D run · Shift walk · W/Space jump (again mid-air = flip) · Mouse aims & turns you · Left click shoot','Left stick: move (push partly to walk) · JUMP (tap again mid-air to flip) · Right stick: aim & fire')
     .replace('Press W / S at a ladder to climb','Push the left stick up / down at a ladder to climb')
     .replace('Hold RIGHT MOUSE to jet. Fuel refills on the ground','Hold JET to fly. Fuel refills on the ground'); }
   document.addEventListener('gesturestart',e=>e.preventDefault());
