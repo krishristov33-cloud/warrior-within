@@ -15,7 +15,7 @@ const ENEMY = {
 };
 const targets = enemiesDef.map(([x,y,type],i)=>({type,x,y,bx:x,by:y,vx:0,vy:0,r:ENEMY[type].r,hp:ENEMY[type].hp,dead:0,ph:i*1.7,hit:0,state:'idle',t:0,cool:1+Math.random(),aggro:0}));
 const SPAWN = {x:checkpoints[0].x, y:checkpoints[0].y};
-const P = {hp:100,inv:0,dead:0,regenT:0,hurtFlash:0,x:SPAWN.x,y:SPAWN.y,vx:0,vy:0,w:44,h:140,ground:false,gs:null,face:1,fuel:1,
+const P = {hp:100,inv:0,dead:0,regenT:0,hurtFlash:0,x:SPAWN.x,y:SPAWN.y,vx:0,vy:0,w:44*HERO,h:140*HERO,ground:false,gs:null,face:1,fuel:1,
   coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,ammo:30,reload:0,cool:0,recoil:0,flash:0,flashN:0,
   climb:null,score:0,gems:0,treasures:0,secrets:0,cp:SPAWN,time:0,done:false,stepT:0,prevY:0,aimWorld:0};
 checkpoints[0].on=true;
@@ -99,14 +99,14 @@ function hurtPlayer(dmg, fromX, kb=520){
   if(P.inv>0 || P.dead>0 || P.done) return;
   dmg=Math.round(dmg*DIFF.dmg); P.hp=Math.max(0,P.hp-dmg); P.inv=DIFF.inv; P.regenT=DIFF.regenDelay; P.hurtFlash=1; shake=Math.min(shake+10,16);
   const dir=Math.sign(P.x-fromX)||1; P.vx=dir*kb; P.vy=Math.max(P.vy,340); P.ground=false; P.gs=null;
-  fxHurt(P.x,P.y+90);
+  fxHurt(P.x,P.y+90*HERO);
   if(P.hp<=0){ die(); return; }
   const e=st.setAnimation(1,'hurt_upper',false); e.mixDuration=0.05; st.addEmptyAnimation(1,0.15,0);
 }
 function die(){
   P.dead=2.8; P.reload=0; P.flip=0; st.setEmptyAnimation(1,0.05);
   cur='death'; curEntry=st.setAnimation(0,'death',false); curEntry.mixDuration=0.08;
-  fxExplode(P.x,P.y+80,[1,0.35,0.25],0.7); P.climb=null;
+  fxExplode(P.x,P.y+80*HERO,[1,0.35,0.25],0.7); P.climb=null;
 }
 function respawn(){
   Object.assign(P,{x:P.cp.x,y:P.cp.y+5,vx:0,vy:0,hp:100,fuel:1,ammo:30,dead:0,inv:1.5,reload:0,gs:null,climb:null});
@@ -172,7 +172,7 @@ function fxCrumble(p){
 
 // ---------- enemies ----------
 function updateEnemies(dt){
-  const px=P.x, py=P.y+85;
+  const px=P.x, py=P.y+85*HERO;
   for(const t of targets){
     t.ph+=dt; t.hit=Math.max(0,t.hit-dt);
     if(t.dead>0){ t.dead-=dt; if(t.dead<=0){ t.hp=ENEMY[t.type].hp; t.x=t.bx; t.y=t.by; t.vx=t.vy=0; t.state='idle'; fxSpawn(t.bx,t.by-90);} continue; }
@@ -184,8 +184,8 @@ function updateEnemies(dt){
     const hoverX=t.bx+Math.sin(t.ph*0.9)*40, hoverY=t.by+Math.sin(t.ph*1.7)*18;
     if(t.type==='gunner' && t.aggro>0){
       const want=460, nx=dx/(d||1), ny=dy/(d||1), push=(d-want)*2.2;
-      ax=nx*push - ny*Math.sin(t.ph*1.3)*180; ay=ny*push + nx*Math.sin(t.ph*1.3)*180 + (py+170-t.y)*1.2;
-      if(!sees){ ax+=(px-t.x)*1.5; ay+=(py+120-t.y)*1.5; }
+      ax=nx*push - ny*Math.sin(t.ph*1.3)*180; ay=ny*push + nx*Math.sin(t.ph*1.3)*180 + (py+170*HERO-t.y)*1.2;
+      if(!sees){ ax+=(px-t.x)*1.5; ay+=(py+120*HERO-t.y)*1.5; }
       t.cool-=dt;
       if(t.state==='idle' && t.cool<=0 && sees){ t.state='charge'; t.t=0.55*DIFF.windup; }
       if(t.state==='charge'){ t.t-=dt; if(t.t<=0){ t.state='idle'; t.cool=(1.4+Math.random()*0.7)*DIFF.cool;
@@ -194,10 +194,10 @@ function updateEnemies(dt){
           part({sp:'star_b',x:t.x,y:t.y,life:0.1,s0:0.14,s1:0.22,rgb:E.col,tint:true,k:1.1}); } }
     } else if(t.type==='charger' && (t.aggro>0 || t.state!=='idle')){
       t.cool-=dt;
-      if(t.state==='idle'){ ax=(px-t.x)*1.6; ay=(py+60-t.y)*1.6; if(sees && d<540 && t.cool<=0){ t.state='windup'; t.t=0.55*DIFF.windup; } }
+      if(t.state==='idle'){ ax=(px-t.x)*1.6; ay=(py+60*HERO-t.y)*1.6; if(sees && d<540 && t.cool<=0){ t.state='windup'; t.t=0.55*DIFF.windup; } }
       else if(t.state==='windup'){ t.t-=dt; t.vx*=0.85; t.vy*=0.85; if(t.t<=0){ const a=Math.atan2(dy,dx); t.vx=Math.cos(a)*1250; t.vy=Math.sin(a)*1250; t.state='dash'; t.t=0.55; } }
       else if(t.state==='dash'){ t.t-=dt; if(Math.random()<0.7) part({sp:'wisp',x:t.x,y:t.y,rot:Math.atan2(t.vy,t.vx)+Math.PI,life:0.3,s0:0.5,s1:0.2,rgb:E.col,tint:true,k:0.8});
-        if(d<t.r+60 && Math.abs(dy)<95){ hurtPlayer(18,t.x,620); t.state='idle'; t.cool=1.6*DIFF.cool; t.vx*=-0.4; t.vy*=-0.4; }
+        if(d<t.r+60*HERO && Math.abs(dy)<95*HERO){ hurtPlayer(18,t.x,620); t.state='idle'; t.cool=1.6*DIFF.cool; t.vx*=-0.4; t.vy*=-0.4; }
         if(t.t<=0){ t.state='idle'; t.cool=1.3; } }
     } else { ax=(hoverX-t.x)*6 - t.vx*2.5; ay=(hoverY-t.y)*6 - t.vy*2.5; }
     if(t.state!=='dash'){ t.vx+=ax*dt; t.vy+=ay*dt; const damp=t.state==='windup'?0:2.2; t.vx-=t.vx*damp*dt; t.vy-=t.vy*damp*dt;

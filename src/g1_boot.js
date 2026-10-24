@@ -3,7 +3,9 @@
 "use strict";
 // keep mobile GPUs fast: cap render resolution
 { const real=window.devicePixelRatio||1; if(('ontouchstart' in window)&&real>1.5) try{ Object.defineProperty(window,'devicePixelRatio',{get:()=>1.5}); }catch(e){} }
-const S = 0.125, FOOT = 78*S;              // character scale (≈166 units tall)
+const HERO = 0.68;                           // hero size relative to the original build (hitbox + body offsets scale with it)
+const S = 0.125*HERO, FOOT = 78*S;           // character scale (≈113 units tall)
+const SINK = 9;                             // surfaces trace the back edge of the painted decks: draw the feet a bit into the deck
 const TS = 1.25;                            // world units per original tile pixel
 const C = (r,g,b,a=1)=>new spine.Color(r,g,b,a);
 const WHITE = C(1,1,1,1);

@@ -3,7 +3,9 @@
 "use strict";
 // keep mobile GPUs fast: cap render resolution
 { const real=window.devicePixelRatio||1; if(('ontouchstart' in window)&&real>1.5) try{ Object.defineProperty(window,'devicePixelRatio',{get:()=>1.5}); }catch(e){} }
-const S = 0.125, FOOT = 78*S;              // character scale (≈166 units tall)
+const HERO = 0.68;                           // hero size relative to the original build (hitbox + body offsets scale with it)
+const S = 0.125*HERO, FOOT = 78*S;           // character scale (≈113 units tall)
+const SINK = 9;                             // surfaces trace the back edge of the painted decks: draw the feet a bit into the deck
 const TS = 1.25;                            // world units per original tile pixel
 const C = (r,g,b,a=1)=>new spine.Color(r,g,b,a);
 const WHITE = C(1,1,1,1);
@@ -102,7 +104,7 @@ function upperOnly(name, keepGun=true, allSlots=false){
                                    || (allSlots && t.slotIndex!==undefined && t.slotIndex!==FLASH_SLOT));
   data.animations.push(new spine.Animation(name+'_upper', tl, a.duration));
 }
-upperOnly('shoot', false); upperOnly('reload'); upperOnly('hurt', false, true);
+upperOnly('shoot', false); upperOnly('reload'); upperOnly('hurt', false, true); upperOnly('aim_up'); upperOnly('shoot_down');
 const sk = new spine.Skeleton(data);
 const sd = new spine.AnimationStateData(data); sd.defaultMix = 0.12;
 [['jump_rise','fall',0.25],['fall','land',0.04],['land','idle_aim',0.2],['land','run',0.1],['idle_aim','run',0.1],
@@ -118,6 +120,12 @@ const BOOTS=[]; { sk.setToSetupPose(); sk.updateWorldTransform(spine.Physics.upd
     if(sole.length&&up.length) BOOTS.push({slot,at,buf,sole,up}); } }
 const bHip=B('hip'), bChest=B('chest'), bHead=B('head'), bGun=B('gun'), bMuzzle=B('muzzle');
 const flashSlot = sk.slots[FLASH_SLOT];
+// aim poses authored in Spine (upper body only): blended in by aim angle, then the gun is set to the exact angle.
+// AIM_*_ANG = muzzle world angle (deg) each pose was authored at, measured on top of idle_aim.
+const AIM_UP=data.findAnimation('aim_up_upper'), AIM_DN=data.findAnimation('shoot_down_upper');
+function poseAng(a){ sk.setToSetupPose(); data.findAnimation('idle_aim').apply(sk,0,0,false,null,1,spine.MixBlend.setup,spine.MixDirection.mixIn);
+  if(a) a.apply(sk,0,0,false,null,1,spine.MixBlend.replace,spine.MixDirection.mixIn); sk.updateWorldTransform(spine.Physics.update); return bMuzzle.getWorldRotationX(); }
+const AIM_0=poseAng(null), AIM_UP_ANG=poseAng(AIM_UP)-AIM_0, AIM_DN_ANG=poseAng(AIM_DN)-AIM_0; sk.setToSetupPose();
 
 
 // ===================== LEVEL (built from the reference painting) =====================
@@ -257,7 +265,7 @@ const ENEMY = {
 };
 const targets = enemiesDef.map(([x,y,type],i)=>({type,x,y,bx:x,by:y,vx:0,vy:0,r:ENEMY[type].r,hp:ENEMY[type].hp,dead:0,ph:i*1.7,hit:0,state:'idle',t:0,cool:1+Math.random(),aggro:0}));
 const SPAWN = {x:checkpoints[0].x, y:checkpoints[0].y};
-const P = {hp:100,inv:0,dead:0,regenT:0,hurtFlash:0,x:SPAWN.x,y:SPAWN.y,vx:0,vy:0,w:44,h:140,ground:false,gs:null,face:1,fuel:1,
+const P = {hp:100,inv:0,dead:0,regenT:0,hurtFlash:0,x:SPAWN.x,y:SPAWN.y,vx:0,vy:0,w:44*HERO,h:140*HERO,ground:false,gs:null,face:1,fuel:1,
   coyote:0,buf:0,dbl:false,flip:0,land:0,jet:false,crouch:false,drop:0,ammo:30,reload:0,cool:0,recoil:0,flash:0,flashN:0,
   climb:null,score:0,gems:0,treasures:0,secrets:0,cp:SPAWN,time:0,done:false,stepT:0,prevY:0,aimWorld:0};
 checkpoints[0].on=true;
@@ -341,14 +349,14 @@ function hurtPlayer(dmg, fromX, kb=520){
   if(P.inv>0 || P.dead>0 || P.done) return;
   dmg=Math.round(dmg*DIFF.dmg); P.hp=Math.max(0,P.hp-dmg); P.inv=DIFF.inv; P.regenT=DIFF.regenDelay; P.hurtFlash=1; shake=Math.min(shake+10,16);
   const dir=Math.sign(P.x-fromX)||1; P.vx=dir*kb; P.vy=Math.max(P.vy,340); P.ground=false; P.gs=null;
-  fxHurt(P.x,P.y+90);
+  fxHurt(P.x,P.y+90*HERO);
   if(P.hp<=0){ die(); return; }
   const e=st.setAnimation(1,'hurt_upper',false); e.mixDuration=0.05; st.addEmptyAnimation(1,0.15,0);
 }
 function die(){
   P.dead=2.8; P.reload=0; P.flip=0; st.setEmptyAnimation(1,0.05);
   cur='death'; curEntry=st.setAnimation(0,'death',false); curEntry.mixDuration=0.08;
-  fxExplode(P.x,P.y+80,[1,0.35,0.25],0.7); P.climb=null;
+  fxExplode(P.x,P.y+80*HERO,[1,0.35,0.25],0.7); P.climb=null;
 }
 function respawn(){
   Object.assign(P,{x:P.cp.x,y:P.cp.y+5,vx:0,vy:0,hp:100,fuel:1,ammo:30,dead:0,inv:1.5,reload:0,gs:null,climb:null});
@@ -414,7 +422,7 @@ function fxCrumble(p){
 
 // ---------- enemies ----------
 function updateEnemies(dt){
-  const px=P.x, py=P.y+85;
+  const px=P.x, py=P.y+85*HERO;
   for(const t of targets){
     t.ph+=dt; t.hit=Math.max(0,t.hit-dt);
     if(t.dead>0){ t.dead-=dt; if(t.dead<=0){ t.hp=ENEMY[t.type].hp; t.x=t.bx; t.y=t.by; t.vx=t.vy=0; t.state='idle'; fxSpawn(t.bx,t.by-90);} continue; }
@@ -426,8 +434,8 @@ function updateEnemies(dt){
     const hoverX=t.bx+Math.sin(t.ph*0.9)*40, hoverY=t.by+Math.sin(t.ph*1.7)*18;
     if(t.type==='gunner' && t.aggro>0){
       const want=460, nx=dx/(d||1), ny=dy/(d||1), push=(d-want)*2.2;
-      ax=nx*push - ny*Math.sin(t.ph*1.3)*180; ay=ny*push + nx*Math.sin(t.ph*1.3)*180 + (py+170-t.y)*1.2;
-      if(!sees){ ax+=(px-t.x)*1.5; ay+=(py+120-t.y)*1.5; }
+      ax=nx*push - ny*Math.sin(t.ph*1.3)*180; ay=ny*push + nx*Math.sin(t.ph*1.3)*180 + (py+170*HERO-t.y)*1.2;
+      if(!sees){ ax+=(px-t.x)*1.5; ay+=(py+120*HERO-t.y)*1.5; }
       t.cool-=dt;
       if(t.state==='idle' && t.cool<=0 && sees){ t.state='charge'; t.t=0.55*DIFF.windup; }
       if(t.state==='charge'){ t.t-=dt; if(t.t<=0){ t.state='idle'; t.cool=(1.4+Math.random()*0.7)*DIFF.cool;
@@ -436,10 +444,10 @@ function updateEnemies(dt){
           part({sp:'star_b',x:t.x,y:t.y,life:0.1,s0:0.14,s1:0.22,rgb:E.col,tint:true,k:1.1}); } }
     } else if(t.type==='charger' && (t.aggro>0 || t.state!=='idle')){
       t.cool-=dt;
-      if(t.state==='idle'){ ax=(px-t.x)*1.6; ay=(py+60-t.y)*1.6; if(sees && d<540 && t.cool<=0){ t.state='windup'; t.t=0.55*DIFF.windup; } }
+      if(t.state==='idle'){ ax=(px-t.x)*1.6; ay=(py+60*HERO-t.y)*1.6; if(sees && d<540 && t.cool<=0){ t.state='windup'; t.t=0.55*DIFF.windup; } }
       else if(t.state==='windup'){ t.t-=dt; t.vx*=0.85; t.vy*=0.85; if(t.t<=0){ const a=Math.atan2(dy,dx); t.vx=Math.cos(a)*1250; t.vy=Math.sin(a)*1250; t.state='dash'; t.t=0.55; } }
       else if(t.state==='dash'){ t.t-=dt; if(Math.random()<0.7) part({sp:'wisp',x:t.x,y:t.y,rot:Math.atan2(t.vy,t.vx)+Math.PI,life:0.3,s0:0.5,s1:0.2,rgb:E.col,tint:true,k:0.8});
-        if(d<t.r+60 && Math.abs(dy)<95){ hurtPlayer(18,t.x,620); t.state='idle'; t.cool=1.6*DIFF.cool; t.vx*=-0.4; t.vy*=-0.4; }
+        if(d<t.r+60*HERO && Math.abs(dy)<95*HERO){ hurtPlayer(18,t.x,620); t.state='idle'; t.cool=1.6*DIFF.cool; t.vx*=-0.4; t.vy*=-0.4; }
         if(t.t<=0){ t.state='idle'; t.cool=1.3; } }
     } else { ax=(hoverX-t.x)*6 - t.vx*2.5; ay=(hoverY-t.y)*6 - t.vy*2.5; }
     if(t.state!=='dash'){ t.vx+=ax*dt; t.vy+=ay*dt; const damp=t.state==='windup'?0:2.2; t.vx-=t.vx*damp*dt; t.vy-=t.vy*damp*dt;
@@ -489,10 +497,10 @@ function updateWorld(dt){
   for(const w of walls) w.hit=Math.max(0,w.hit-dt);
   // secrets
   for(const s of secrets){ const inside = P.x>s.x && P.x<s.x+s.w && P.y+40>s.y && P.y<s.y+s.h+40;
-    if(inside && !s.found){ s.found=true; P.secrets++; toast('✦ Secret area discovered'); fxSparkle(P.x,P.y+120,true); } }
+    if(inside && !s.found){ s.found=true; P.secrets++; toast('✦ Secret area discovered'); fxSparkle(P.x,P.y+120*HERO,true); } }
   // crystals
   for(const c of crystals){ if(c.taken) continue; c.ph+=dt;
-    const dx=P.x-c.x, dy=P.y+80-c.y, d=Math.hypot(dx,dy);
+    const dx=P.x-c.x, dy=P.y+80*HERO-c.y, d=Math.hypot(dx,dy);
     if(d<150 && P.dead<=0) c.mag=true;
     if(c.mag){ const sp=Math.max(500,1600-d*4); c.x+=dx/(d||1)*sp*dt; c.y+=dy/(d||1)*sp*dt; }
     if(d<40 && P.dead<=0){ c.taken=true; P.gems++; fxSparkle(c.x,c.y); }
@@ -523,7 +531,7 @@ function update(dt){
   P.crouch = down && P.ground && !P.climb;
   const jetBtn = alive && (M.r || K.shift);
   if(!alive) P.buf=0;
-  if(TOUCH.active){ M.wx=P.x+TOUCH.ax*520; M.wy=P.y+95+TOUCH.ay*520; } else { const mw=screenToWorld(M.x,M.y); M.wx=mw.x; M.wy=mw.y; }
+  if(TOUCH.active){ M.wx=P.x+TOUCH.ax*520; M.wy=P.y+95*HERO+TOUCH.ay*520; } else { const mw=screenToWorld(M.x,M.y); M.wx=mw.x; M.wy=mw.y; }
   // the mouse alone decides which way the warrior faces
   if(alive){ const cxp=P.x; if(M.wx < cxp-4) P.face=-1; else if(M.wx > cxp+4) P.face=1; }
   updateWorld(dt);
@@ -561,7 +569,7 @@ function update(dt){
   if(P.ground && !P.jet) P.fuel=Math.min(1,P.fuel+FUEL_REGEN*dt);
   P.vy -= G*dt;
   P.vx=clamp(P.vx,-MAXVX,MAXVX); P.vy=clamp(P.vy,-MAXDOWN,MAXUP);
-  P.h = P.crouch?100:140;
+  P.h = (P.crouch?100:140)*HERO;
   moveAndCollide(dt);
   if(P.ground) P.dbl=false;
   if(P.ground && P.gs && !P.gs.dyn && !(P.gs.piece&&P.gs.piece.brk)) P.safe={x:P.x,y:P.y};
@@ -596,14 +604,17 @@ function update(dt){
   } else if(curEntry) curEntry.timeScale=1;
 
   // ---- skeleton + aim ----
-  sk.scaleX=P.face; sk.x=P.x; sk.y=P.y-FOOT;
+  sk.scaleX=P.face; sk.x=P.x; sk.y=P.y-FOOT-SINK;
   st.update(dt); st.apply(sk);
-  const piv={x:bGun.worldX||P.x, y:bGun.worldY||P.y+90};
+  const piv={x:bGun.worldX||P.x, y:bGun.worldY||P.y+90*HERO};
   let dx=(M.wx-piv.x)*P.face, dy=M.wy-piv.y;
   let th=Math.atan2(dy,Math.max(dx,4))*180/Math.PI; th=clamp(th,-78,82);
   const lock = P.flip>0 || P.reload>0 || P.dead>0 || P.done;
   if(!lock){
-    bChest.rotation += th*0.14; bHead.rotation += clamp(th*0.35,-25,28);
+    const up=th>0?clamp(th/AIM_UP_ANG,0,1):0, dn=th<0?clamp(th/AIM_DN_ANG,0,1):0;
+    if(up>0) AIM_UP.apply(sk,0,0,false,null,up,spine.MixBlend.replace,spine.MixDirection.mixIn);
+    if(dn>0) AIM_DN.apply(sk,0,0,false,null,dn,spine.MixBlend.replace,spine.MixDirection.mixIn);
+    bHead.rotation += clamp((th-clamp(th,AIM_DN_ANG,AIM_UP_ANG))*0.3,-15,15);   // past the authored poses, just tilt the head
     bGun.rotation = th + 7*P.recoil - bHip.rotation - bChest.rotation;
     const gr=bGun.rotation*Math.PI/180, k=4.5*P.recoil; bGun.x -= Math.cos(gr)*k; bGun.y -= Math.sin(gr)*k;
   }
@@ -645,8 +656,8 @@ function update(dt){
   if(parts.length>1400) parts.splice(0,parts.length-1400);
 
   // camera
-  const lookX=clamp((M.wx-P.x)*0.3,-320,320), lookY=clamp((M.wy-P.y-80)*0.25,-200,200);
-  camX += (P.x+lookX-camX)*Math.min(1,dt*6); camY += (P.y+90+lookY-camY)*Math.min(1,dt*6);
+  const lookX=clamp((M.wx-P.x)*0.3,-320,320), lookY=clamp((M.wy-P.y-80*HERO)*0.25,-200,200);
+  camX += (P.x+lookX-camX)*Math.min(1,dt*6); camY += (P.y+90*HERO+lookY-camY)*Math.min(1,dt*6);
   { const vw=canvas.width*cam.zoom, vh=canvas.height*cam.zoom;
     camX=clamp(camX, vw/2, Math.max(vw/2, LEVEL_W-vw/2)); camY = vh>=REF_H-1 ? REF_H/2 : clamp(camY, vh/2, REF_H-vh/2); }
   if(window.__camOv){ camX=window.__camOv[0]; camY=window.__camOv[1]; }
