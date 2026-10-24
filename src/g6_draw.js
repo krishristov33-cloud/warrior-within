@@ -76,7 +76,7 @@ function draw(dt){
     if(hk){ setBlendAddA(); spr(TX.drone,[0,0,1,1],x,y,W,H,rot,col(0.75*hk,0.08*hk,0.04*hk,1),f<0,0.5,0.58); }
     // spinning rotor blur over both discs
     for(const [u,v,ph] of [[0.22,0.12,0],[0.79,0.18,1.7]]){ const [rx,ry]=at(u,v), sp=t.ph*38+ph;
-      fx('ring1',rx,ry,W/330,rot,[0.8,0.95,1],0.22,true,false,0.5,0.5,1.0);
+      gring(rx,ry,W*0.42,[0.8,0.95,1],0.3,0.28);
       fx('streak',rx,ry,W/420,rot+(Math.sin(sp)>0?0:Math.PI),[0.85,0.95,1],0.35,true,false,0.5,0.5,Math.abs(Math.cos(sp))*0.9+0.1); }
     // eye: steady glow, brightening while it winds up a shot / dash
     const [ex,ey]=at(0.69,0.46), pulse=0.6+0.4*Math.sin(t.ph*6);
@@ -92,6 +92,7 @@ function draw(dt){
     gshape(0,b.x,b.y,Lt,9,ba,[1,0.5,0.12],0.9,1); gshape(0,b.x,b.y,Lt*0.6,3.5,ba,[1,0.92,0.7],1,1); fx('orb_s',b.x,b.y,0.12,0,[1,0.7,0.3],0.9,true); }
   for(const p of parts){ if(p.x<x0-300||p.x>x1+300||p.y<y0-300||p.y>y1+300) continue;
     const t=1-p.life/p.max, s=lerp(p.s0,p.s1,t);
+    if(p.ring){ gring(p.x,p.y,s,p.rgb,p.k*Math.pow(Math.max(0,p.life/p.max),0.8),p.sy??1); continue; }
     if(p.gs!==undefined){ const r=p.line?Math.atan2(p.vy,p.vx):p.rot; gshape(p.gs,p.x,p.y,s,p.w,r,p.rgb,p.k*Math.max(0,p.life/p.max),p.px??0.5); continue; }
     if(p.puff!==undefined){ (p.add?puffAdd:puff)(p.puff,p.x,p.y,s,p.rot,p.rgb,p.k*Math.min(1,t*7)*Math.pow(Math.max(0,1-t),1.4)); continue; }
     const a=p.k*Math.pow(Math.max(0,p.life/p.max),0.6);

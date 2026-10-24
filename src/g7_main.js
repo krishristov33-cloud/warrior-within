@@ -63,6 +63,6 @@ function frame(now){
 hud('src').textContent = 'Character: '+sf.src;
 hud('gemsTotal').textContent = '/'+totalCrystals;
 hud('loading').style.display='none';
-window.__game={P,st,sk,K,M,targets,swings,breakables,secrets,crystals,chests,RELIC,ladders,surfaces,placements,LEVEL_W,setView:v=>VIEW_H=v};
+window.__game={P,st,sk,K,M,targets,checkpoints,swings,breakables,secrets,crystals,chests,RELIC,ladders,surfaces,placements,LEVEL_W,setView:v=>VIEW_H=v};
 requestAnimationFrame(t=>{last=t; requestAnimationFrame(frame);});
 })().catch(e=>{document.getElementById('loading').textContent='Error: '+e.message; console.error(e);});

@@ -46,9 +46,9 @@ function updateWorld(dt){
       fxSparkle(ch.x,ch.y+90,true); fxExplode(ch.x,ch.y+90,[0.45,1,0.95],0.7); toast('✦ '+ch.name+' found!  +8 crystals'); } }
   for(const c of crystals){ if(c.burst){ c.t+=dt; if(c.t<0.45){ c.x+=c.burst.vx*dt; c.y+=c.burst.vy*dt; c.burst.vy-=2400*dt; c.mag=false; } else c.mag=true; } }
   for(const cp of checkpoints){ cp.t+=dt; if(!cp.on && Math.abs(P.x-cp.x)<120 && Math.abs(P.y-cp.y)<200 && P.dead<=0){
-      cp.on=true; P.cp={x:cp.x,y:cp.y}; for(const o of checkpoints) if(o!==cp && o.x<cp.x) o.on=true; toast('Checkpoint reached'); fxSpawn(cp.x,cp.y); } }
+      cp.on=true; P.cp={x:cp.x,y:cp.y}; for(const o of checkpoints) if(o!==cp && o.x<cp.x) o.on=true; toast('Checkpoint reached'); fxCheckpoint(cp.x,cp.y); } }
   for(const h of hints){ if(!h.shown && P.x>h.x0 && P.x<h.x1 && P.y>h.ymin && P.y<h.ymax && P.dead<=0){ h.shown=true; toast(h.text,5); } }
-  if(!RELIC.taken && Math.abs(P.x-RELIC.x)<110 && Math.abs(P.y-RELIC.y)<150 && P.dead<=0){ RELIC.taken=true; P.done=true; fxExplode(RELIC.x,RELIC.y+120,[0.5,1,1],1.4); fxSparkle(RELIC.x,RELIC.y+120,true); finish(); }
+  if(!RELIC.taken && Math.abs(P.x-RELIC.x)<110 && Math.abs(P.y-RELIC.y)<150 && P.dead<=0){ RELIC.taken=true; P.done=true; fxRelic(RELIC.x,RELIC.y+120); fxSparkle(RELIC.x,RELIC.y+120,true); finish(); }
   toastT-=dt; if(toastT<=0) hud('toast').classList.remove('on');
 }
 function finish(){
@@ -91,7 +91,7 @@ function update(dt){
   if(P.ground){
     if(inX){ const d=inX*maxv-P.vx; P.vx += Math.sign(d)*Math.min(Math.abs(d),ACC_G*dt); }
     else { const s=Math.sign(P.vx); P.vx -= s*Math.min(Math.abs(P.vx),FRIC*dt); }
-  } else { if(inX && inX*P.vx < RUN) P.vx += inX*ACC_A*dt; P.vx -= P.vx*0.12*dt; }
+  } else { if(inX && inX*P.vx < (K.shift?RUN:RUN_ANIM)) P.vx += inX*ACC_A*dt; P.vx -= P.vx*0.12*dt; }
   P.coyote = P.ground?0.09:Math.max(0,P.coyote-dt); P.buf=Math.max(0,P.buf-dt); P.drop=Math.max(0,P.drop-dt);
   if(P.buf>0){
     if(down && P.ground && P.gs && !lad){ P.drop=0.22; P.ground=false; P.gs=null; P.buf=0; P.vy=-120; }
@@ -133,7 +133,7 @@ function update(dt){
   else if(speed<300) play('walk'); else play('run');
   if(P.climb && curEntry){ curEntry.timeScale=Math.abs(P.vy)/260; }
   else if(curEntry && (cur==='walk'||cur==='run')){
-    const rate = cur==='run'? speed/RUN : speed/WALK;
+    const rate = cur==='run'? speed/RUN_ANIM : speed/WALK;   // faster run plays the cycle faster
     if(back){ curEntry.timeScale=0; const d=curEntry.animation.duration; curEntry.trackTime=((curEntry.trackTime - dt*rate*0.85)%d+d)%d; }
     else curEntry.timeScale=Math.max(0.5,rate);
   } else if(curEntry) curEntry.timeScale=1;
